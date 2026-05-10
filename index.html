@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outil de renommage OTAN (version finale complète)</title>
+    <title>Outil de renommage OTAN (GitHub Pages + Worker + Claude)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -214,19 +214,6 @@
             padding-top: 20px;
             border-top: 1px dashed #ddd;
         }
-        .translation-db {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed #ddd;
-        }
-        .wikipedia-preview {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f0f8ff;
-            border-radius: 6px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
         .file-mapping {
             margin-top: 10px;
             padding: 10px;
@@ -254,7 +241,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎖️ Outil de renommage OTAN (version finale complète)</h1>
+        <h1>🎖️ Outil de renommage OTAN (GitHub Pages + Worker + Claude)</h1>
 
         <div class="button-group">
             <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
@@ -269,48 +256,9 @@
 
             <div class="row">
                 <div class="form-group">
-                    <label for="countryTrigrams">Trigrammes des pays (1 par ligne, ex: LVA=Latvia,LVAF) :</label>
-                    <textarea id="countryTrigrams" rows="10" placeholder="LVA=Latvia,Latvian,LVAF,Latvian Air Force&#10;SVN=Slovenia,Slovenian&#10;GBR=United Kingdom,British,UK,Great Britain,Royal Air Force,RAF&#10;USA=United States,US,American,USAF,US Air Force&#10;CAN=Canada,Canadian,CAF,Royal Canadian Air Force">ALB=Albania,Albanian
-BEL=Belgium,Belgian
-BGR=Bulgaria,Bulgarian
-CAN=Canada,Canadian,CAF,Royal Canadian Air Force
-DEU=Germany,German
-ESP=Spain,Spanish
-FRA=France,French
-GBR=United Kingdom,British,UK,Great Britain,Royal Air Force,RAF
-HRV=Croatia,Croatian
-HUN=Hungary,Hungarian
-ITA=Italy,Italian
-LVA=Latvia,Latvian,LVAF,Latvian Air Force
-MNE=Montenegro,Montenegrin
-NLD=Netherlands,Dutch
-POL=Poland,Polish
-PRT=Portugal,Portuguese
-ROU=Romania,Romanian
-RUS=Russia,Russian
-SVK=Slovakia,Slovak
-SVN=Slovenia,Slovenian
-TUR=Turkey,Turkish
-USA=United States,US,American,USAF,US Air Force
-NOR=Norway,Norwegian
-DNK=Denmark,Danish
-GRC=Greece,Greek
-FIN=Finland,Finnish
-SWE=Sweden,Swedish
-CZE=Czech Republic,Czech
-ISL=Iceland,Icelandic
-LUX=Luxembourg,Luxembourgish</textarea>
-                    <p class="example">Format: TRIGRAMME=noms_séparés_par_des_virgules (ex: LVA=Latvia,LVAF,Latvian Air Force)</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="form-group">
-                    <label for="branchMappings">Correspondance des branches (1 par ligne, ex: AIR=air,air force,RAF) :</label>
-                    <textarea id="branchMappings" rows="6" placeholder="AIR=air,air force,aviation,RAF,luftwaffe,air army,LVAF&#10;LAND=land,army,ground,terre,infantry,artillery&#10;NAVY=navy,marine,sea,mer,royal navy,marines">AIR=air,air force,aviation,RAF,luftwaffe,air army,LVAF,Slovenian Air Force,Latvian Air Force
-LAND=land,army,ground,terre,infantry,artillery
-NAVY=navy,marine,sea,mer,royal navy,marines,coast guard</textarea>
-                    <p class="example">Format: BRANCHE=mot1,mot2,mot3 (ex: AIR=air,air force,RAF,LVAF)</p>
+                    <label for="workerUrl">URL de ton Worker Cloudflare :</label>
+                    <input type="url" id="workerUrl" placeholder="https://ton-worker.workers.dev" value="https://massive-rename.fievre-eclaircie.workers.dev">
+                    <p class="example">Exemple: https://ton-worker.workers.dev</p>
                 </div>
             </div>
 
@@ -322,13 +270,13 @@ NAVY=navy,marine,sea,mer,royal navy,marines,coast guard</textarea>
 - {COUNTRY} : Trigramme du pays (ex: LVA)
 - {BRANCH} : Branche militaire (AIR, LAND, NAVY)
 - {RANK} : Grade OTAN (ex: OF8)
-- {LATIN_NAME} : Nom du grade avec des tirets (ex: General-Lieutenant)
+- {LATIN_NAME} : Nom du grade en latin (ex: General-Lieutenant)
 - {EXT} : Extension du fichier (ex: .svg, .png)</p>
                 </div>
             </div>
 
             <div class="wikipedia-section">
-                <h2>Intégration Wikipedia (API MediaWiki)</h2>
+                <h2>Intégration Wikipedia et Claude</h2>
                 <div class="row">
                     <div class="form-group">
                         <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
@@ -336,63 +284,9 @@ NAVY=navy,marine,sea,mer,royal navy,marines,coast guard</textarea>
                         <p class="example">Exemple: https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO</p>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="form-group">
-                        <label for="tableSelector">Sélecteur CSS pour les tableaux (optionnel) :</label>
-                        <input type="text" id="tableSelector" placeholder="table" value="table">
-                        <p class="example">Exemple: table (pour cibler tous les tableaux)</p>
-                    </div>
-                </div>
-                <div class="wikipedia-preview" id="wikipediaPreview">
-                    <h3>📊 Aperçu des données Wikipedia</h3>
-                    <div id="wikipediaTableContainer">
-                        <p>Charge une page Wikipedia pour voir l'aperçu des données.</p>
-                    </div>
-                    <div class="file-mapping" id="fileMappingContainer">
-                        <h4>🔗 Association fichiers → noms de grades</h4>
-                        <div id="fileMappingList"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="translation-db">
-                <h2>Base de données de traduction (optionnelle)</h2>
-                <div class="row">
-                    <div class="form-group">
-                        <label for="translationDb">Traductions des grades (1 par ligne, ex: Gjeneral lejtant=General-Lieutenant) :</label>
-                        <textarea id="translationDb" rows="10" placeholder="Gjeneral lejtant=General-Lieutenant&#10;Gjeneral major=Major-General">Gjeneral lejtant=General-Lieutenant
-Gjeneral major=Major-General
-Kolonel=Colonel
-Nënkolonel=Lieutenant-Colonel
-Generaal=General
-Luitenant-generaal=Lieutenant-General
-Generaal-majoor=Major-General
-Brigadegeneraal=Brigadier-General
-Kolonel=Colonel
-Luitenant-kolonel=Lieutenant-Colonel
-Majoor=Major
-Kapitein=Captain
-Luitenant=Lieutenant
-Generaal=General
-Генерал=General
-Генерал-лейтенант=Lieutenant-General
-Генерал-майор=Major-General
-Бригаден генерал=Brigadier-General
-Полковник=Colonel
-Подполковник=Lieutenant-Colonel
-Майор=Major
-Капитан=Captain
-General=General
-Lieutenant General=Lieutenant-General
-Major General=Major-General
-Brigadier General=Brigadier-General
-Colonel=Colonel
-Lieutenant Colonel=Lieutenant-Colonel
-Major=Major
-Captain=Captain
-Lieutenant=Lieutenant</textarea>
-                        <p class="example">Format: NOM_ORIGINAL=NOM_LATIN (un par ligne, avec des tirets)</p>
-                    </div>
+                <div class="file-mapping" id="fileMappingContainer">
+                    <h4>🔗 Association fichiers → noms de grades</h4>
+                    <div id="fileMappingList"></div>
                 </div>
             </div>
         </div>
@@ -437,15 +331,10 @@ Lieutenant=Lieutenant</textarea>
         const analyzeBtn = document.getElementById('analyzeBtn');
         const applyBtn = document.getElementById('applyBtn');
         const undoBtn = document.getElementById('undoBtn');
-        const countryTrigramsTextarea = document.getElementById('countryTrigrams');
-        const branchMappingsTextarea = document.getElementById('branchMappings');
+        const workerUrlInput = document.getElementById('workerUrl');
         const rankTemplateInput = document.getElementById('rankTemplate');
         const wikipediaUrlInput = document.getElementById('wikipediaUrl');
-        const tableSelectorInput = document.getElementById('tableSelector');
-        const translationDbTextarea = document.getElementById('translationDb');
         const fileList = document.getElementById('fileList');
-        const wikipediaTableContainer = document.getElementById('wikipediaTableContainer');
-        const fileMappingContainer = document.getElementById('fileMappingContainer');
         const fileMappingList = document.getElementById('fileMappingList');
         const statusMessage = document.getElementById('statusMessage');
         const errorMessage = document.getElementById('errorMessage');
@@ -461,11 +350,11 @@ Lieutenant=Lieutenant</textarea>
         let allFiles = [];
         let originalFiles = [];
         let imageCache = new Map();
-        let countryTrigrams = {};
-        let branchMappings = {};
         let wikipediaData = null;
-        let translationDb = {};
-        let fileToGradeMap = {}; // Map pour associer les fichiers aux grades
+        let fileToGradeMap = {};
+
+        // URL du Worker Cloudflare
+        let WORKER_URL = workerUrlInput.value;
 
         // Fonction pour ajouter un message à la console
         function logToConsole(message, type = 'log') {
@@ -504,242 +393,49 @@ Lieutenant=Lieutenant</textarea>
             }
         }
 
-        // Fonction pour charger les trigrammes des pays
-        function loadCountryTrigrams() {
-            const lines = countryTrigramsTextarea.value.split('\n');
-            countryTrigrams = {};
-            lines.forEach(line => {
-                const [trigram, names] = line.split('=').map(part => part.trim());
-                if (trigram && names) {
-                    const nameList = names.split(',').map(name => name.trim().toLowerCase());
-                    nameList.forEach(name => {
-                        countryTrigrams[name] = trigram.toUpperCase();
-                    });
-                }
-            });
-            logToConsole(`Trigrammes chargés: ${Object.keys(countryTrigrams).length} entrées.`);
-        }
-
-        // Fonction pour charger les correspondances des branches
-        function loadBranchMappings() {
-            const lines = branchMappingsTextarea.value.split('\n');
-            branchMappings = {};
-            lines.forEach(line => {
-                const [branch, keywords] = line.split('=').map(part => part.trim());
-                if (branch && keywords) {
-                    const keywordList = keywords.split(',').map(kw => kw.trim().toLowerCase());
-                    branchMappings[branch.toUpperCase()] = keywordList;
-                }
-            });
-            logToConsole(`Correspondances des branches chargées: ${Object.keys(branchMappings).length} branches.`);
-        }
-
-        // Fonction pour charger la base de données de traduction
-        function loadTranslationDb() {
-            const lines = translationDbTextarea.value.split('\n');
-            translationDb = {};
-            lines.forEach(line => {
-                const [original, latin] = line.split('=').map(part => part.trim());
-                if (original && latin) {
-                    translationDb[original.toLowerCase()] = latin;
-                }
-            });
-            logToConsole(`Base de données de traduction chargée: ${Object.keys(translationDb).length} entrées.`);
-        }
-
         // Fonction pour formater le nom latin avec des tirets
         function formatLatinName(name) {
             if (!name) return '';
-            // Remplacer les espaces par des tirets
             let formattedName = name.replace(/\s+/g, '-');
-            // Supprimer les caractères spéciaux (sauf les tirets et les lettres/chiffres)
             formattedName = formattedName.replace(/[^\w-]/g, '');
-            // Supprimer les tirets multiples
             formattedName = formattedName.replace(/-+/g, '-');
-            // Supprimer les tirets en début et fin
             formattedName = formattedName.replace(/^-|-$/g, '');
             return formattedName;
         }
 
-        // Fonction pour vérifier si un tableau contient des grades OTAN
-        function isRankTable(table) {
-            const headers = table.querySelectorAll('th, td');
-            // Vérifier si les en-têtes contiennent des codes OTAN (OF-1, OF-2, etc.)
-            for (let i = 0; i < Math.min(5, headers.length); i++) {
-                const headerText = headers[i].textContent.trim().toUpperCase();
-                if (headerText.includes('OF-') || headerText.includes('OR-') || headerText.includes('NATO')) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Fonction pour extraire le nom du grade d'une cellule
-        function extractGradeName(cell) {
-            // 1. Vérifier si la cellule contient du texte
-            let gradeName = cell.textContent.trim();
-            if (gradeName) {
-                return gradeName;
-            }
-
-            // 2. Vérifier si la cellule contient une image avec un attribut alt
-            const img = cell.querySelector('img');
-            if (img) {
-                const altText = img.getAttribute('alt') || '';
-                if (altText) {
-                    return altText;
-                }
-            }
-
-            // 3. Vérifier les cellules suivantes (pour les tableaux où le nom est en dessous)
-            const nextSibling = cell.nextElementSibling;
-            if (nextSibling && nextSibling.textContent.trim()) {
-                return nextSibling.textContent.trim();
-            }
-
-            // 4. Vérifier la cellule parent (pour les structures complexes)
-            const parent = cell.parentElement;
-            if (parent) {
-                const allText = parent.textContent.trim();
-                if (allText) {
-                    return allText;
-                }
-            }
-
-            return '';
-        }
-
-        // Fonction pour charger les données Wikipedia via l'API MediaWiki
+        // Fonction pour charger les données Wikipedia via le Worker
         async function loadWikipediaData() {
             const url = wikipediaUrlInput.value.trim();
             if (!url) {
                 wikipediaData = null;
-                wikipediaTableContainer.innerHTML = '<p>Aucune URL Wikipedia fournie.</p>';
-                fileMappingList.innerHTML = '';
+                fileMappingList.innerHTML = '<p>Aucune URL Wikipedia fournie.</p>';
                 logToConsole("Aucune URL Wikipedia fournie.", 'warning');
                 return;
             }
 
             try {
-                statusMessage.textContent = "Chargement de la page Wikipedia via API MediaWiki...";
-                logToConsole(`Appel à l'API MediaWiki pour ${url}...`);
+                WORKER_URL = workerUrlInput.value.trim();
+                if (!WORKER_URL) {
+                    throw new Error("URL du Worker non fournie.");
+                }
 
-                // Extraire le titre de la page depuis l'URL
-                const pageTitle = new URL(url).pathname.split('/').pop();
+                statusMessage.textContent = "Chargement de la page Wikipedia via Worker...";
+                logToConsole(`Appel au Worker pour ${url}...`);
 
-                // Utiliser l'API MediaWiki pour récupérer le contenu HTML
-                const apiUrl = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&format=json&origin=*`;
-                const response = await fetch(apiUrl, {
+                const response = await fetch(`${WORKER_URL}/scrape-wikipedia`, {
+                    method: 'POST',
                     headers: {
-                        'Accept': 'text/html',
-                        'User-Agent': 'Mozilla/5.0'
-                    }
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ wikiUrl: url })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Erreur HTTP ${response.status} lors de la récupération de la page Wikipedia.`);
+                    const errorData = await response.json().catch(() => ({ error: "Erreur inconnue" }));
+                    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
                 }
 
-                const data = await response.json();
-
-                if (!data.parse || !data.parse.text || !data.parse.text['*']) {
-                    throw new Error("Aucun contenu trouvé dans la page Wikipedia.");
-                }
-
-                // Parser le HTML avec DOMParser
-                const html = data.parse.text['*'];
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                // Trouver tous les tableaux (pas seulement .wikitable)
-                const selector = tableSelectorInput.value || 'table';
-                const tables = doc.querySelectorAll(selector);
-
-                if (tables.length === 0) {
-                    throw new Error(`Aucun tableau trouvé avec le sélecteur "${selector}".`);
-                }
-
-                // Filtrer les tableaux qui contiennent des grades OTAN
-                const rankTables = Array.from(tables).filter(isRankTable);
-
-                if (rankTables.length === 0) {
-                    throw new Error("Aucun tableau de grades OTAN trouvé. Essayez un autre sélecteur ou une autre page.");
-                }
-
-                // Prendre le premier tableau de grades trouvé
-                const table = rankTables[0];
-                const rows = table.querySelectorAll('tr');
-                const result = {};
-                fileToGradeMap = {}; // Réinitialiser la map
-
-                // Parser les en-têtes pour les grades OTAN
-                const headerCells = rows[0]?.querySelectorAll('th, td') || [];
-                const otanRanks = [];
-                for (let i = 1; i < headerCells.length; i++) {
-                    const rank = headerCells[i].textContent.trim();
-                    if (rank) {
-                        // Nettoyer le grade (ex: "OF-1" → "OF1")
-                        const cleanRank = rank.toUpperCase().replace(/[-\s]/g, '');
-                        otanRanks.push(cleanRank);
-                    }
-                }
-
-                // Parser les lignes pour les pays/branches
-                for (let i = 1; i < rows.length; i++) {
-                    const cells = rows[i].querySelectorAll('th, td');
-                    if (cells.length === 0) continue;
-
-                    const armyName = cells[0].textContent.trim();
-                    if (!armyName) continue;
-
-                    // Détecter le pays et la branche
-                    const { country, branch } = detectCountryAndBranch(armyName);
-                    if (!country || !branch) continue;
-
-                    // Pour chaque colonne (grade OTAN)
-                    for (let j = 1; j < cells.length && j < otanRanks.length + 1; j++) {
-                        const cell = cells[j];
-                        const rank = otanRanks[j - 1];
-
-                        // Extraire le nom du grade
-                        let latinName = extractGradeName(cell);
-
-                        // Si la cellule contient une image, essayer de récupérer son nom de fichier
-                        const img = cell.querySelector('img');
-                        let filename = null;
-                        if (img) {
-                            const src = img.getAttribute('src');
-                            if (src) {
-                                // Extraire le nom du fichier de l'URL de l'image
-                                filename = src.split('/').pop().split('.')[0];
-                            }
-                        }
-
-                        // Nettoyer le nom (espaces → tirets)
-                        latinName = formatLatinName(latinName);
-
-                        // Ajouter à result
-                        if (!result[country]) result[country] = {};
-                        if (!result[country][branch]) result[country][branch] = {};
-                        result[country][branch][rank] = {
-                            latinName,
-                            filename // Nom du fichier image (ex: ALB-airforce-OF-8)
-                        };
-
-                        // Associer le nom du fichier au grade
-                        if (filename) {
-                            fileToGradeMap[filename] = {
-                                country,
-                                branch,
-                                rank,
-                                latinName
-                            };
-                        }
-                    }
-                }
-
-                wikipediaData = result;
-                displayWikipediaPreviewFromWorker(result);
+                wikipediaData = await response.json();
                 displayFileMapping();
                 logToConsole(`Données Wikipedia chargées: ${Object.keys(wikipediaData).length} pays.`);
                 statusMessage.textContent = '';
@@ -747,264 +443,106 @@ Lieutenant=Lieutenant</textarea>
                 errorMessage.textContent = `Erreur: ${error.message}`;
                 logToConsole(`Erreur: ${error.message}`, 'error');
                 wikipediaData = null;
-                fileToGradeMap = {};
-                wikipediaTableContainer.innerHTML = `<p style="color: #e74c3c;">Erreur: ${error.message}</p>`;
                 fileMappingList.innerHTML = '';
             }
         }
 
         // Fonction pour afficher l'association fichiers → noms de grades
         function displayFileMapping() {
-            if (Object.keys(fileToGradeMap).length === 0) {
-                fileMappingList.innerHTML = '<p>Aucune association fichier → grade trouvée.</p>';
+            if (!wikipediaData || Object.keys(wikipediaData).length === 0) {
+                fileMappingList.innerHTML = '<p>Aucune donnée Wikipedia chargée.</p>';
                 return;
             }
 
-            fileMappingList.innerHTML = '';
-            for (const [filename, gradeInfo] of Object.entries(fileToGradeMap)) {
-                const item = document.createElement('div');
-                item.className = 'file-mapping-item';
-                item.innerHTML = `
-                    <strong>${filename}</strong> →
-                    ${gradeInfo.country}_${gradeInfo.branch}_${gradeInfo.rank}_${gradeInfo.latinName}${gradeInfo.extension || '.svg'}
-                `;
-                fileMappingList.appendChild(item);
-            }
+            fileMappingList.innerHTML = '<p>Associations fichiers → grades (à partir de Wikipedia).</p>';
         }
 
-        // Fonction pour afficher un aperçu des données Wikipedia
-        function displayWikipediaPreviewFromWorker(data) {
-            if (!data || Object.keys(data).length === 0) {
-                wikipediaTableContainer.innerHTML = '<p>Aucune donnée valide reçue.</p>';
-                return;
-            }
-
-            // Créer un tableau HTML pour afficher un extrait
-            const previewTable = document.createElement('table');
-            previewTable.style.width = '100%';
-            previewTable.style.borderCollapse = 'collapse';
-            previewTable.style.marginTop = '10px';
-
-            // Ajouter les en-têtes
-            const headerRow = document.createElement('tr');
-            ['Pays', 'Branche', 'Grade OTAN', 'Nom du grade', 'Fichier image'].forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                th.style.border = '1px solid #ddd';
-                th.style.padding = '8px';
-                th.style.textAlign = 'center';
-                th.style.backgroundColor = '#e6f2ff';
-                headerRow.appendChild(th);
-            });
-            previewTable.appendChild(headerRow);
-
-            // Ajouter les données (limité à 10 entrées pour l'aperçu)
-            let count = 0;
-            for (const [country, branches] of Object.entries(data)) {
-                for (const [branch, ranks] of Object.entries(branches)) {
-                    for (const [rank, info] of Object.entries(ranks)) {
-                        if (count >= 10) break;
-
-                        const row = document.createElement('tr');
-                        [country, branch, rank, info.latinName, info.filename || ''].forEach(text => {
-                            const td = document.createElement('td');
-                            td.textContent = text;
-                            td.style.border = '1px solid #ddd';
-                            td.style.padding = '8px';
-                            td.style.textAlign = 'center';
-                            row.appendChild(td);
-                        });
-                        previewTable.appendChild(row);
-                        count++;
-                    }
-                    if (count >= 10) break;
-                }
-                if (count >= 10) break;
-            }
-
-            wikipediaTableContainer.innerHTML = '';
-            wikipediaTableContainer.appendChild(previewTable);
-        }
-
-        // Fonction pour détecter le pays et la branche à partir du nom de l'armée
-        function detectCountryAndBranch(armyName) {
-            const lowerName = armyName.toLowerCase();
-            let country = null;
-            let branch = null;
-
-            // Détecter le pays
-            for (const [countryName, trigram] of Object.entries(countryTrigrams)) {
-                if (lowerName.includes(countryName)) {
-                    country = trigram;
-                    break;
-                }
-            }
-
-            // Détecter la branche
-            for (const [branchCode, keywords] of Object.entries(branchMappings)) {
-                for (const keyword of keywords) {
-                    if (lowerName.includes(keyword)) {
-                        branch = branchCode;
-                        break;
-                    }
-                }
-                if (branch) break;
-            }
-
-            return { country, branch };
-        }
-
-        // Fonction pour analyser un nom de fichier
-        function analyzeFilename(filename) {
-            const originalName = filename.replace(/\.[^/.]+$/, ''); // Supprimer l'extension
-            const lowerName = filename.toLowerCase();
+        // Fonction pour analyser un nom de fichier via le Worker
+        async function analyzeFilename(filename) {
+            const baseName = filename.replace(/\.[^/.]+$/, '');
             const extension = filename.slice(filename.lastIndexOf('.'));
-            const baseFilename = originalName.toLowerCase();
+            const lowerName = baseName.toLowerCase();
 
-            // Vérifier si le fichier est dans la map fileToGradeMap
-            if (fileToGradeMap[baseFilename]) {
-                const gradeInfo = fileToGradeMap[baseFilename];
+            try {
+                WORKER_URL = workerUrlInput.value.trim();
+                if (!WORKER_URL) {
+                    throw new Error("URL du Worker non fournie.");
+                }
+
+                logToConsole(`Analyse de ${filename} via Worker...`);
+
+                const response = await fetch(`${WORKER_URL}/analyze-filename`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        wikiUrl: wikipediaUrlInput.value.trim() || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: "Erreur inconnue" }));
+                    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+                }
+
+                const analysis = await response.json();
+
+                // Si le Worker n'a pas trouvé de nom latin, essayer de le déduire
+                if (!analysis.latinName && wikipediaData) {
+                    const { country, branch, rank } = analysis;
+                    if (country && branch && rank && wikipediaData[country]?.[branch]?.[rank]) {
+                        analysis.latinName = wikipediaData[country][branch][rank];
+                    }
+                }
+
+                // Formater le nom latin
+                if (analysis.latinName) {
+                    analysis.latinName = formatLatinName(analysis.latinName);
+                } else {
+                    analysis.latinName = 'Unknown';
+                }
+
                 return {
-                    originalName,
-                    country: gradeInfo.country,
-                    branch: gradeInfo.branch,
-                    rank: gradeInfo.rank,
-                    latinName: gradeInfo.latinName,
-                    extension,
-                    newName: generateNewName(originalName, gradeInfo.country, gradeInfo.branch, gradeInfo.rank, gradeInfo.latinName, extension)
+                    originalName: baseName,
+                    country: analysis.country || 'XXX',
+                    branch: analysis.branch || 'XXX',
+                    rank: analysis.rank || 'OF',
+                    latinName: analysis.latinName,
+                    extension: extension,
+                    newName: generateNewName(baseName, analysis.country, analysis.branch, analysis.rank, analysis.latinName, extension)
+                };
+            } catch (error) {
+                logToConsole(`Erreur avec Worker pour ${filename}: ${error.message}`, 'error');
+                // Retourner une analyse par défaut
+                return {
+                    originalName: baseName,
+                    country: 'XXX',
+                    branch: 'XXX',
+                    rank: 'OF',
+                    latinName: 'Unknown',
+                    extension: extension,
+                    newName: `${baseName}${extension}`
                 };
             }
-
-            // Si non trouvé dans la map, utiliser l'analyse classique
-            let country = null;
-            let branch = null;
-            let rank = null;
-            let latinName = null;
-
-            // 1. Chercher le pays dans le nom du fichier
-            for (const [countryName, trigram] of Object.entries(countryTrigrams)) {
-                if (lowerName.includes(countryName)) {
-                    country = trigram;
-                    break;
-                }
-            }
-
-            // 2. Chercher la branche dans le nom du fichier
-            for (const [branchCode, keywords] of Object.entries(branchMappings)) {
-                for (const keyword of keywords) {
-                    if (lowerName.includes(keyword)) {
-                        branch = branchCode;
-                        break;
-                    }
-                }
-                if (branch) break;
-            }
-
-            // 3. Chercher le grade OTAN dans le nom du fichier
-            // Regex améliorée pour capturer OF-8, OF8, OF_8, etc.
-            const rankMatch = lowerName.match(/(of|or|w|nco)[-_]?(\d)/i);
-            if (rankMatch) {
-                rank = `${rankMatch[1].toUpperCase()}${rankMatch[2]}`;
-            } else {
-                // Chercher des mots-clés de grades
-                const rankKeywords = {
-                    'general': 'OF9',
-                    'lieutenant general': 'OF8',
-                    'major general': 'OF7',
-                    'brigadier general': 'OF6',
-                    'brigadier': 'OF6',
-                    'colonel': 'OF5',
-                    'lieutenant colonel': 'OF4',
-                    'major': 'OF3',
-                    'captain': 'OF2',
-                    'lieutenant': 'OF1',
-                    'ensign': 'OF1',
-                    'second lieutenant': 'OF1',
-                    'first lieutenant': 'OF1',
-                    'chief warrant officer': 'OR9',
-                    'warrant officer': 'OR8',
-                    'master sergeant': 'OR7',
-                    'sergeant': 'OR6',
-                    'staff sergeant': 'OR6',
-                    'corporal': 'OR4',
-                    'private': 'OR1',
-                    'admiral': 'OF9',
-                    'vice admiral': 'OF8',
-                    'rear admiral': 'OF7',
-                    'commodore': 'OF6',
-                    'commander': 'OF4'
-                };
-
-                for (const [keyword, rankCode] of Object.entries(rankKeywords)) {
-                    if (lowerName.includes(keyword)) {
-                        rank = rankCode;
-                        break;
-                    }
-                }
-            }
-
-            // 4. Si aucun grade n'est trouvé, utiliser le grade par défaut
-            if (!rank) {
-                rank = 'OF';
-            }
-
-            // 5. Si Wikipedia est chargé, essayer de trouver le nom latin
-            if (wikipediaData && country && branch && rank) {
-                const gradeInfo = wikipediaData[country]?.[branch]?.[rank];
-                if (gradeInfo) {
-                    latinName = gradeInfo.latinName;
-                }
-            }
-
-            // 6. Si aucun nom latin n'est trouvé, essayer la base de traduction
-            if (!latinName) {
-                // Extraire le nom local du fichier (ex: "Gjeneral lejtant" dans "ALB-airforce-OF-8-Gjeneral lejtant.svg")
-                const latinMatch = originalName.match(/(?:of|or|w|nco)[-_]?\d[-_]?(.+)/i);
-                if (latinMatch) {
-                    const localName = latinMatch[1].replace(/[-_]/g, ' ');
-                    const translated = translationDb[localName.toLowerCase()];
-                    if (translated) {
-                        latinName = formatLatinName(translated);
-                    } else {
-                        latinName = formatLatinName(localName);
-                    }
-                }
-            }
-
-            // 7. Si toujours aucun nom latin, utiliser un nom par défaut
-            if (!latinName) {
-                latinName = 'Unknown';
-            }
-
-            return {
-                originalName,
-                country,
-                branch,
-                rank,
-                latinName,
-                extension,
-                newName: generateNewName(originalName, country, branch, rank, latinName, extension)
-            };
         }
 
         // Fonction pour générer le nouveau nom
         function generateNewName(originalName, country, branch, rank, latinName, extension) {
             let template = rankTemplateInput.value;
 
-            // Remplacer les variables dans le template
             template = template.replace(/{COUNTRY}/g, country || 'XXX');
             template = template.replace(/{BRANCH}/g, branch || 'XXX');
             template = template.replace(/{RANK}/g, rank || 'OF');
             template = template.replace(/{LATIN_NAME}/g, latinName || 'Unknown');
-            template = template.replace(/{ORIGINAL}/g, originalName);
             template = template.replace(/{EXT}/g, extension || '.svg');
 
-            // Supprimer les variables non remplacées (ex: {ORIGINAL} si non utilisé)
+            // Supprimer les variables non remplacées
             template = template.replace(/\{[^}]+\}/g, '');
 
-            // Supprimer les doubles extensions (ex: .svg.svg)
-            template = template.replace(/\.[^.]+$/, '');
-            template += extension;
+            // Supprimer les doubles extensions
+            template = template.replace(/\.[^.]+$/, '') + extension;
 
             return template;
         }
@@ -1016,7 +554,7 @@ Lieutenant=Lieutenant</textarea>
 
             for (const file of allFiles) {
                 const row = document.createElement('tr');
-                const analysis = analyzeFilename(file.name);
+                const analysis = await analyzeFilename(file.name);
                 const isModified = analysis.newName !== file.name;
 
                 // Prévisualisation de l'image si c'est un fichier image
@@ -1046,11 +584,11 @@ Lieutenant=Lieutenant</textarea>
 
                 // Affichage de l'analyse
                 let analysisHtml = '';
-                if (analysis.country) analysisHtml += `<span style="color: #27ae60;">🇺🇳 ${analysis.country}</span> `;
-                if (analysis.branch) analysisHtml += `<span style="color: #3498db;">🎖️ ${analysis.branch}</span> `;
-                if (analysis.rank) analysisHtml += `<span style="color: #e74c3c;">⭐ ${analysis.rank}</span> `;
-                if (analysis.latinName) analysisHtml += `<span style="color: #9b59b6;">📜 ${analysis.latinName}</span>`;
-                if (!analysis.country && !analysis.branch && !analysis.rank) {
+                if (analysis.country && analysis.country !== 'XXX') analysisHtml += `<span style="color: #27ae60;">🇺🇳 ${analysis.country}</span> `;
+                if (analysis.branch && analysis.branch !== 'XXX') analysisHtml += `<span style="color: #3498db;">🎖️ ${analysis.branch}</span> `;
+                if (analysis.rank && analysis.rank !== 'OF') analysisHtml += `<span style="color: #e74c3c;">⭐ ${analysis.rank}</span> `;
+                if (analysis.latinName && analysis.latinName !== 'Unknown') analysisHtml += `<span style="color: #9b59b6;">📜 ${analysis.latinName}</span>`;
+                if ((!analysis.country || analysis.country === 'XXX') && (!analysis.branch || analysis.branch === 'XXX') && (!analysis.rank || analysis.rank === 'OF')) {
                     analysisHtml = `<span style="color: #f39c12;">⚠️ Aucun motif reconnu</span>`;
                 }
 
@@ -1094,11 +632,6 @@ Lieutenant=Lieutenant</textarea>
                 allFiles = files;
                 originalFiles = JSON.parse(JSON.stringify(files));
 
-                // Charger les trigrammes, les mappings et la base de traduction
-                loadCountryTrigrams();
-                loadBranchMappings();
-                loadTranslationDb();
-
                 await updateFileList();
                 analyzeBtn.disabled = false;
                 loadWikipediaBtn.disabled = false;
@@ -1117,9 +650,6 @@ Lieutenant=Lieutenant</textarea>
         // Charger la page Wikipedia
         loadWikipediaBtn.addEventListener('click', async function() {
             await loadWikipediaData();
-            if (allFiles.length > 0) {
-                await updateFileList();
-            }
         });
 
         // Analyser et renommer
@@ -1130,12 +660,7 @@ Lieutenant=Lieutenant</textarea>
                 return;
             }
 
-            // Charger les trigrammes, les mappings et la base de traduction
-            loadCountryTrigrams();
-            loadBranchMappings();
-            loadTranslationDb();
-
-            statusMessage.textContent = "Analyse en cours...";
+            statusMessage.textContent = "Analyse en cours via Worker + Claude...";
             errorMessage.textContent = '';
             successMessage.textContent = '';
             logToConsole('Analyse des noms de fichiers...');
@@ -1144,12 +669,10 @@ Lieutenant=Lieutenant</textarea>
             selectFolderBtn.disabled = true;
             loadWikipediaBtn.disabled = true;
 
-            // Mettre à jour la liste avec les nouveaux noms
             await updateFileList();
 
-            // Compter les fichiers à renommer
             const modifiedCount = allFiles.filter(file => {
-                const analysis = analyzeFilename(file.name);
+                const analysis = await analyzeFilename(file.name);
                 return analysis.newName !== file.name;
             }).length;
 
@@ -1168,9 +691,8 @@ Lieutenant=Lieutenant</textarea>
 
         // Appliquer les changements
         applyBtn.addEventListener('click', async function() {
-            // Compter les fichiers à renommer
             const filesToRename = allFiles.filter(file => {
-                const analysis = analyzeFilename(file.name);
+                const analysis = await analyzeFilename(file.name);
                 return analysis.newName !== file.name;
             });
 
@@ -1186,7 +708,6 @@ Lieutenant=Lieutenant</textarea>
                 return;
             }
 
-            // Afficher la barre de progression
             progressContainer.style.display = 'block';
             progressBar.style.width = '0%';
             progressBar.textContent = '0%';
@@ -1210,17 +731,15 @@ Lieutenant=Lieutenant</textarea>
 
             for (const fileObj of filesToRename) {
                 try {
-                    const analysis = analyzeFilename(fileObj.name);
+                    const analysis = await analyzeFilename(fileObj.name);
                     const oldName = fileObj.name;
                     const newName = analysis.newName;
 
-                    // Vérifier si le nom a été modifié
                     if (newName === oldName) {
                         processedCount++;
                         continue;
                     }
 
-                    // Vérifier si le nouveau fichier existe déjà
                     try {
                         const existingFile = await directoryHandle.getFileHandle(newName, { create: false });
                         logToConsole(`Conflit : ${newName} existe déjà.`, 'warning');
@@ -1234,16 +753,13 @@ Lieutenant=Lieutenant</textarea>
                     const fileHandle = fileObj.handle;
                     const file = await fileHandle.getFile();
 
-                    // Créer le nouveau fichier
                     const newFileHandle = await directoryHandle.getFileHandle(newName, { create: true });
                     const writable = await newFileHandle.createWritable();
                     await writable.write(await file.arrayBuffer());
                     await writable.close();
 
-                    // Supprimer l'ancien fichier
                     await fileHandle.remove();
 
-                    // Mettre à jour le cache des images
                     if (isImageFile(oldName)) {
                         imageCache.delete(allFiles.indexOf(fileObj));
                     }
@@ -1254,14 +770,12 @@ Lieutenant=Lieutenant</textarea>
                         }
                     }
 
-                    // Mettre à jour le nom dans allFiles
                     fileObj.name = newName;
 
                     logToConsole(`✅ Renommé : ${oldName} → ${newName}`, 'success');
                     successCount++;
                     processedCount++;
 
-                    // Mettre à jour la barre de progression
                     const progress = Math.round((processedCount / totalFiles) * 100);
                     progressBar.style.width = `${progress}%`;
                     progressBar.textContent = `${progress}%`;
@@ -1270,14 +784,12 @@ Lieutenant=Lieutenant</textarea>
                     errorCount++;
                     processedCount++;
 
-                    // Mettre à jour la barre de progression même en cas d'erreur
                     const progress = Math.round((processedCount / totalFiles) * 100);
                     progressBar.style.width = `${progress}%`;
                     progressBar.textContent = `${progress}%`;
                 }
             }
 
-            // Réinitialisation
             progressContainer.style.display = 'none';
             applyBtn.disabled = false;
             analyzeBtn.disabled = false;
@@ -1285,7 +797,6 @@ Lieutenant=Lieutenant</textarea>
             loadWikipediaBtn.disabled = false;
             undoBtn.disabled = false;
 
-            // Mettre à jour la liste des fichiers pour refléter les changements
             await updateFileList();
 
             statusMessage.textContent = '';
@@ -1316,16 +827,11 @@ Lieutenant=Lieutenant</textarea>
             logToConsole('Modifications annulées.', 'success');
         });
 
-        // Écouteurs pour les changements de template
+        // Écouteurs pour les changements
+        workerUrlInput.addEventListener('input', updateFileList);
         rankTemplateInput.addEventListener('input', updateFileList);
-        countryTrigramsTextarea.addEventListener('input', updateFileList);
-        branchMappingsTextarea.addEventListener('input', updateFileList);
         wikipediaUrlInput.addEventListener('input', updateFileList);
-        tableSelectorInput.addEventListener('input', updateFileList);
-        translationDbTextarea.addEventListener('input', updateFileList);
 
         // Initialisation
-        loadCountryTrigrams();
-        loadBranchMappings();
-        loadTranslationDb();
+        logToConsole('Outil prêt. Sélectionnez un dossier pour commencer.');
     </script>
