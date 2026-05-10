@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil de renommage OTAN (GitHub Pages)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        input, select, button, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .button-group button {
+            flex: 1;
+            min-width: 150px;
+        }
+        #tableContainer {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background-color: #f5f7fa;
+        }
+        .file-preview {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .file-preview-placeholder {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-size: 20px;
+        }
+        .status {
+            color: #3498db;
+            font-style: italic;
+            margin: 10px 0;
+        }
+        .error {
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .success {
+            color: #27ae60;
+            margin: 10px 0;
+        }
+        .warning {
+            color: #f39c12;
+            margin: 10px 0;
+        }
+        #consoleOutput {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+        .progress-container {
+            margin: 20px 0;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .options {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .row .form-group {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 0;
+        }
+        .example {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        .template-help {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+        .analysis-details {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .wikipedia-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #ddd;
+        }
+        .translation-db {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+        }
+        .wikipedia-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        @media (max-width: 768px) {
+            .file-preview, .file-preview-placeholder {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎖️ Outil de renommage OTAN (GitHub Pages)</h1>
+
+        <div class="button-group">
+            <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
+            <button id="loadWikipediaBtn" disabled>🌐 Charger la page Wikipedia</button>
+            <button id="analyzeBtn" disabled>🔍 Analyser et renommer</button>
+            <button id="applyBtn" disabled>✅ Appliquer les changements</button>
+            <button id="undoBtn" disabled>↩️ Annuler</button>
+        </div>
+
+        <div class="options">
+            <h2>Options de base</h2>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="countryTrigrams">Trigrammes des pays (1 par ligne, ex: ALB=Albania) :</label>
+                    <textarea id="countryTrigrams" rows="6" placeholder="ALB=Albania,Albanian&#10;BEL=Belgium,Belgian&#10;FRA=France,French">ALB=Albania,Albanian
+BEL=Belgium,Belgian
+FRA=France,French
+DEU=Germany,German
+GBR=United Kingdom,British,UK
+USA=United States,US,American
+CAN=Canada,Canadian
+LVA=Latvia,Latvian
+MNE=Montenegro,Montenegrin
+RUS=Russia,Russian</textarea>
+                    <p class="example">Format: TRIGRAMME=noms_séparés_par_des_virgules</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="branchMappings">Correspondance des branches (1 par ligne, ex: AIR=air,air force) :</label>
+                    <textarea id="branchMappings" rows="4" placeholder="AIR=air,air force,aviation,RAF&#10;LAND=land,army,ground&#10;NAVY=navy,marine,sea">AIR=air,air force,aviation,RAF,luftwaffe,air army
+LAND=land,army,ground,terre,infantry,artillery
+NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
+                    <p class="example">Format: BRANCHE=mot1,mot2,mot3 (séparés par des virgules)</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="rankTemplate">Template de renommage :</label>
+                    <input type="text" id="rankTemplate" value="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}" placeholder="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}">
+                    <p class="template-help">Variables disponibles:
+- {COUNTRY} : Trigramme du pays (ex: ALB)
+- {BRANCH} : Branche militaire (AIR, LAND, NAVY)
+- {RANK} : Grade OTAN (ex: OF8)
+- {LATIN_NAME} : Nom du grade avec des tirets (ex: Gjeneral-lejtant)
+- {ORIGINAL} : Nom original du fichier (sans extension)
+- {EXT} : Extension du fichier (ex: .svg, .png)</p>
+                </div>
+            </div>
+
+            <div class="wikipedia-section">
+                <h2>Intégration Wikipedia (via proxy CORS)</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
+                        <input type="url" id="wikipediaUrl" placeholder="https://en.wikipedia.org/wiki/Albanian_Armed_Forces">
+                        <p class="example">Exemple: https://en.wikipedia.org/wiki/Albanian_Armed_Forces</p>
+                    </div>
+                </div>
+                <div class="wikipedia-preview" id="wikipediaPreview">
+                    <h3>📊 Aperçu des données Wikipedia</h3>
+                    <div id="wikipediaTableContainer">
+                        <p>Charge une page Wikipedia pour voir l'aperçu des données.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="translation-db">
+                <h2>Base de données de traduction (optionnelle)</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="translationDb">Traductions des grades (1 par ligne, ex: Gjeneral lejtant=General Lieutenant) :</label>
+                        <textarea id="translationDb" rows="4" placeholder="Gjeneral lejtant=General Lieutenant&#10;Gjeneral major=Major General">Gjeneral lejtant=General Lieutenant
+Gjeneral major=Major General
+Kolonel=Colonel
+Nënkolonel=Lieutenant Colonel</textarea>
+                        <p class="example">Format: NOM_ORIGINAL=NOM_LATIN (un par ligne)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <span id="totalFiles">0 fichier(s) sélectionné(s)</span>
+            <span id="modifiedFiles">0 fichier(s) à renommer</span>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+
+        <div id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Prévisualisation</th>
+                        <th>Nom original</th>
+                        <th>Analyse</th>
+                        <th>Nouveau nom</th>
+                    </tr>
+                </thead>
+                <tbody id="fileList">
+                    <!-- Les lignes seront ajoutées dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="statusMessage" class="status"></div>
+        <div id="errorMessage" class="error"></div>
+        <div id="successMessage" class="success"></div>
+
+        <h2>🐞 Console</h2>
+        <div id="consoleOutput"></div>
+    </div>
+
+    <!-- Proxy CORS pour contourner les restrictions -->
+    <script src="https://cdn.jsdelivr.net/npm/cors-anywhere@1.0.0/dist/cors-anywhere.min.js"></script>
+    <script>
+        // Éléments DOM
+        const selectFolderBtn = document.getElementById('selectFolderBtn');
+        const loadWikipediaBtn = document.getElementById('loadWikipediaBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const applyBtn = document.getElementById('applyBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const countryTrigramsTextarea = document.getElementById('countryTrigrams');
+        const branchMappingsTextarea = document.getElementById('branchMappings');
+        const rankTemplateInput = document.getElementById('rankTemplate');
+        const wikipediaUrlInput = document.getElementById('wikipediaUrl');
+        const translationDbTextarea = document.getElementById('translationDb');
+        const fileList = document.getElementById('fileList');
+        const wikipediaTableContainer = document.getElementById('wikipediaTableContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const consoleOutput = document.getElementById('consoleOutput');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const totalFilesSpan = document.getElementById('totalFiles');
+        const modifiedFilesSpan = document.getElementById('modifiedFiles');
+
+        // Variables globales
+        let directoryHandle = null;
+        let allFiles = [];
+        let originalFiles = [];
+        let imageCache = new Map();
+        let countryTrigrams = {};
+        let branchMappings = {};
+        let wikipediaData = null;
+        let translationDb = {};
+
+        // URL du proxy CORS public (pour contourner les restrictions)
+        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+
+        // Fonction pour ajouter un message à la console
+        function logToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            let formattedMessage = `[${timestamp}] ${message}`;
+            if (type === 'error') {
+                formattedMessage = `<span style="color: #e74c3c;">${formattedMessage}</span>`;
+            } else if (type === 'success') {
+                formattedMessage = `<span style="color: #27ae60;">${formattedMessage}</span>`;
+            } else if (type === 'warning') {
+                formattedMessage = `<span style="color: #f39c12;">${formattedMessage}</span>`;
+            }
+            consoleOutput.innerHTML += formattedMessage + '<br>';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Fonction pour vérifier si un fichier est une image
+        function isImageFile(filename) {
+            const imageExtensions = ['.gif', '.png', '.jpg', '.jpeg', '.svg', '.webp', '.bmp'];
+            return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+        }
+
+        // Fonction pour charger une image et retourner son URL
+        async function loadImagePreview(fileHandle) {
+            try {
+                const file = await fileHandle.getFile();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(e);
+                    reader.readAsDataURL(file);
+                });
+            } catch (e) {
+                console.error("Erreur lors du chargement de l'image:", e);
+                return null;
+            }
+        }
+
+        // Fonction pour charger les trigrammes des pays
+        function loadCountryTrigrams() {
+            const lines = countryTrigramsTextarea.value.split('\n');
+            countryTrigrams = {};
+            lines.forEach(line => {
+                const [trigram, names] = line.split('=').map(part => part.trim());
+                if (trigram && names) {
+                    const nameList = names.split(',').map(name => name.trim().toLowerCase());
+                    nameList.forEach(name => {
+                        countryTrigrams[name] = trigram.toUpperCase();
+                    });
+                }
+            });
+            logToConsole(`Trigrammes chargés: ${Object.keys(countryTrigrams).length} entrées.`);
+        }
+
+        // Fonction pour charger les correspondances des branches
+        function loadBranchMappings() {
+            const lines = branchMappingsTextarea.value.split('\n');
+            branchMappings = {};
+            lines.forEach(line => {
+                const [branch, keywords] = line.split('=').map(part => part.trim());
+                if (branch && keywords) {
+                    const keywordList = keywords.split(',').map(kw => kw.trim().toLowerCase());
+                    branchMappings[branch.toUpperCase()] = keywordList;
+                }
+            });
+            logToConsole(`Correspondances des branches chargées: ${Object.keys(branchMappings).length} branches.`);
+        }
+
+        // Fonction pour charger la base de données de traduction
+        function loadTranslationDb() {
+            const lines = translationDbTextarea.value.split('\n');
+            translationDb = {};
+            lines.forEach(line => {
+                const [original, latin] = line.split('=').map(part => part.trim());
+                if (original && latin) {
+                    translationDb[original.toLowerCase()] = latin;
+                }
+            });
+            logToConsole(`Base de données de traduction chargée: ${Object.keys(translationDb).length} entrées.`);
+        }
+
+        // Fonction pour formater le nom latin avec des tirets
+        function formatLatinName(name) {
+            if (!name) return '';
+            // Remplacer les espaces par des tirets
+            let formattedName = name.replace(/\s+/g, '-');
+            // Supprimer les caractères spéciaux (sauf les tirets et les lettres/chiffres)
+            formattedName = formattedName.replace(/[^\w-]/g, '');
+            // Supprimer les tirets multiples
+            formattedName = formattedName.replace(/-+/g, '-');
+            // Supprimer les tirets en début et fin
+            formattedName = formattedName.replace(/^-|-$/g, '');
+            return formattedName;
+        }
+
+        // Fonction pour charger les données Wikipedia via un proxy CORS
+        async function loadWikipediaData() {
+            const url = wikipediaUrlInput.value.trim();
+            if (!url) {
+                wikipediaData = null;
+                wikipediaTableContainer.innerHTML = '<p>Aucune URL Wikipedia fournie.</p>';
+                logToConsole("Aucune URL Wikipedia fournie.", 'warning');
+                return;
+            }
+
+            try {
+                statusMessage.textContent = "Chargement de la page Wikipedia via proxy CORS...";
+                logToConsole(`Appel au proxy CORS pour ${url}...`);
+
+                // Utiliser le proxy CORS pour éviter les restrictions
+                const proxyUrl = `${CORS_PROXY}${url}?no-cache=1`;
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'Accept': 'text/html',
+                        'User-Agent': 'Mozilla/5.0'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP ${response.status} lors de la récupération de la page Wikipedia.`);
+                }
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Trouver tous les tableaux de type "wikitable"
+                const tables = doc.querySelectorAll('table.wikitable');
+                if (tables.length === 0) {
+                    throw new Error("Aucun tableau de type 'wikitable' trouvé.");
+                }
+
+                // On prend le premier tableau wikitable
+                const table = tables[0];
+                const rows = table.querySelectorAll('tr');
+                const result = {};
+
+                // Parser les en-têtes pour les grades OTAN
+                const headerCells = rows[0]?.querySelectorAll('th, td') || [];
+                const otanRanks = [];
+                for (let i = 1; i < headerCells.length; i++) {
+                    const rank = headerCells[i].textContent.trim();
+                    if (rank) {
+                        otanRanks.push(rank.toUpperCase().replace(/[-\s]/g, ''));
+                    }
+                }
+
+                // Parser les lignes pour les pays/branches
+                for (let i = 1; i < rows.length; i++) {
+                    const cells = rows[i].querySelectorAll('th, td');
+                    if (cells.length === 0) continue;
+
+                    const armyName = cells[0].textContent.trim();
+                    if (!armyName) continue;
+
+                    // Détecter le pays et la branche
+                    const { country, branch } = detectCountryAndBranch(armyName);
+                    if (!country || !branch) continue;
+
+                    // Pour chaque colonne (grade OTAN)
+                    for (let j = 1; j < cells.length && j < otanRanks.length + 1; j++) {
+                        const cell = cells[j];
+                        const rank = otanRanks[j - 1];
+                        let latinName = cell.textContent.trim();
+
+                        // Si la cellule contient une image, essayer de récupérer l'attribut alt
+                        const img = cell.querySelector('img');
+                        if (img) {
+                            const altText = img.getAttribute('alt') || '';
+                            if (altText) {
+                                latinName = altText;
+                            }
+                        }
+
+                        // Nettoyer le nom (espaces → tirets)
+                        latinName = formatLatinName(latinName);
+
+                        // Ajouter à result
+                        if (!result[country]) result[country] = {};
+                        if (!result[country][branch]) result[country][branch] = {};
+                        result[country][branch][rank] = { latinName };
+                    }
+                }
+
+                wikipediaData = result;
+                displayWikipediaPreviewFromWorker(result);
+                logToConsole(`Données Wikipedia chargées: ${Object.keys(wikipediaData).length} pays.`);
+                statusMessage.textContent = '';
+            } catch (error) {
+                errorMessage.textContent = `Erreur: ${error.message}`;
+                logToConsole(`Erreur: ${error.message}`, 'error');
+                wikipediaData = null;
+                wikipediaTableContainer.innerHTML = `<p style="color: #e74c3c;">Erreur: ${error.message}</p>`;
+            }
+        }
+
+        // Fonction pour afficher un aperçu des données Wikipedia
+        function displayWikipediaPreviewFromWorker(data) {
+            if (!data || Object.keys(data).length === 0) {
+                wikipediaTableContainer.innerHTML = '<p>Aucune donnée valide reçue.</p>';
+                return;
+            }
+
+            // Créer un tableau HTML pour afficher un extrait
+            const previewTable = document.createElement('table');
+            previewTable.style.width = '100%';
+            previewTable.style.borderCollapse = 'collapse';
+            previewTable.style.marginTop = '10px';
+
+            // Ajouter les en-têtes
+            const headerRow = document.createElement('tr');
+            ['Pays', 'Branche', 'Grade OTAN', 'Nom du grade'].forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                th.style.border = '1px solid #ddd';
+                th.style.padding = '8px';
+                th.style.textAlign = 'center';
+                th.style.backgroundColor = '#e6f2ff';
+                headerRow.appendChild(th);
+            });
+            previewTable.appendChild(headerRow);
+
+            // Ajouter les données (limité à 5 entrées pour l'aperçu)
+            let count = 0;
+            for (const [country, branches] of Object.entries(data)) {
+                for (const [branch, ranks] of Object.entries(branches)) {
+                    for (const [rank, info] of Object.entries(ranks)) {
+                        if (count >= 5) break;
+
+                        const row = document.createElement('tr');
+                        [country, branch, rank, info.latinName].forEach(text => {
+                            const td = document.createElement('td');
+                            td.textContent = text;
+                            td.style.border = '1px solid #ddd';
+                            td.style.padding = '8px';
+                            td.style.textAlign = 'center';
+                            row.appendChild(td);
+                        });
+                        previewTable.appendChild(row);
+                        count++;
+                    }
+                    if (count >= 5) break;
+                }
+                if (count >= 5) break;
+            }
+
+            wikipediaTableContainer.innerHTML = '';
+            wikipediaTableContainer.appendChild(previewTable);
+        }
+
+        // Fonction pour détecter le pays et la branche à partir du nom de l'armée
+        function detectCountryAndBranch(armyName) {
+            const lowerName = armyName.toLowerCase();
+            let country = null;
+            let branch = null;
+
+            // Détecter le pays
+            for (const [countryName, trigram] of Object.entries(countryTrigrams)) {
+                if (lowerName.includes(countryName)) {
+                    country = trigram;
+                    break;
+                }
+            }
+
+            // Détecter la branche
+            for (const [branchCode, keywords] of Object.entries(branchMappings)) {
+                for (const keyword of keywords) {
+                    if (lowerName.includes(keyword)) {
+                        branch = branchCode;
+                        break;
+                    }
+                }
+                if (branch) break;
+            }
+
+            return { country, branch };
+        }
+
+        // Fonction pour analyser un nom de fichier
+        function analyzeFilename(filename) {
+            const originalName = filename.replace(/\.[^/.]+$/, ''); // Supprimer l'extension
+            const lowerName = filename.toLowerCase();
+
+            // Initialiser les résultats
+            let country = null;
+            let branch = null;
+            let rank = null;
+            let latinName = null;
+
+            // 1. Chercher le pays et la branche dans le nom du fichier
+            for (const [countryName, trigram] of Object.entries(countryTrigrams)) {
+                if (lowerName.includes(countryName)) {
+                    country = trigram;
+                    break;
+                }
+            }
+
+            for (const [branchCode, keywords] of Object.entries(branchMappings)) {
+                for (const keyword of keywords) {
+                    if (lowerName.includes(keyword)) {
+                        branch = branchCode;
+                        break;
+                    }
+                }
+                if (branch) break;
+            }
+
+            // 2. Chercher le grade OTAN dans le nom du fichier
+            const rankMatch = lowerName.match(/(of|or|w|nco)[-_]?(\d)/i);
+            if (rankMatch) {
+                rank = `${rankMatch[1].toUpperCase()}${rankMatch[2]}`;
+            } else {
+                // Chercher des mots-clés de grades
+                const rankKeywords = {
+                    'general': 'OF9',
+                    'lieutenant general': 'OF8',
+                    'major general': 'OF7',
+                    'brigadier general': 'OF6',
+                    'brigadier': 'OF6',
+                    'colonel': 'OF5',
+                    'lieutenant colonel': 'OF4',
+                    'major': 'OF3',
+                    'captain': 'OF2',
+                    'lieutenant': 'OF1',
+                    'ensign': 'OF1',
+                    'second lieutenant': 'OF1',
+                    'first lieutenant': 'OF1',
+                    'chief warrant officer': 'OR9',
+                    'warrant officer': 'OR8',
+                    'master sergeant': 'OR7',
+                    'sergeant': 'OR6',
+                    'staff sergeant': 'OR6',
+                    'corporal': 'OR4',
+                    'private': 'OR1',
+                    'admiral': 'OF9',
+                    'vice admiral': 'OF8',
+                    'rear admiral': 'OF7',
+                    'commodore': 'OF6',
+                    'commander': 'OF4'
+                };
+
+                for (const [keyword, rankCode] of Object.entries(rankKeywords)) {
+                    if (lowerName.includes(keyword)) {
+                        rank = rankCode;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Si aucun grade n'est trouvé, utiliser le grade par défaut
+            if (!rank) {
+                rank = 'OF';
+            }
+
+            // 4. Si Wikipedia est chargé, essayer de trouver le nom latin
+            if (wikipediaData && country && branch && rank) {
+                const gradeInfo = wikipediaData[country]?.[branch]?.[rank];
+                if (gradeInfo) {
+                    latinName = gradeInfo.latinName;
+                }
+            }
+
+            // 5. Si aucun nom latin n'est trouvé, essayer la base de traduction
+            if (!latinName) {
+                // Extraire le nom local du fichier (ex: "Gjeneral lejtant" dans "ALB-airforce-OF-8-Gjeneral lejtant.svg")
+                const latinMatch = originalName.match(/(?:of|or|w|nco)[-_]?\d[-_]?(.+)/i);
+                if (latinMatch) {
+                    const localName = latinMatch[1].replace(/[-_]/g, ' ');
+                    const translated = translationDb[localName.toLowerCase()];
+                    if (translated) {
+                        latinName = formatLatinName(translated);
+                    } else {
+                        latinName = formatLatinName(localName);
+                    }
+                }
+            }
+
+            // 6. Si toujours aucun nom latin, utiliser le nom original
+            if (!latinName) {
+                latinName = formatLatinName(originalName);
+            }
+
+            return {
+                originalName,
+                country,
+                branch,
+                rank,
+                latinName,
+                newName: generateNewName(originalName, country, branch, rank, latinName)
+            };
+        }
+
+        // Fonction pour générer le nouveau nom
+        function generateNewName(originalName, country, branch, rank, latinName) {
+            let template = rankTemplateInput.value;
+
+            // Remplacer les variables dans le template
+            template = template.replace(/{COUNTRY}/g, country || 'XXX');
+            template = template.replace(/{BRANCH}/g, branch || 'XXX');
+            template = template.replace(/{RANK}/g, rank || 'OF');
+            template = template.replace(/{LATIN_NAME}/g, latinName || formatLatinName(originalName));
+            template = template.replace(/{ORIGINAL}/g, originalName);
+
+            // Ajouter l'extension
+            const file = allFiles.find(f => f.name.startsWith(originalName));
+            if (file) {
+                const ext = file.name.slice(file.name.lastIndexOf('.'));
+                template = template.replace(/{EXT}/g, ext);
+            } else {
+                template += '.svg'; // Extension par défaut
+            }
+
+            return template;
+        }
+
+        // Fonction pour mettre à jour la liste des fichiers
+        async function updateFileList() {
+            fileList.innerHTML = '';
+            imageCache.clear();
+
+            for (const file of allFiles) {
+                const row = document.createElement('tr');
+                const analysis = analyzeFilename(file.name);
+                const isModified = analysis.newName !== file.name;
+
+                // Prévisualisation de l'image si c'est un fichier image
+                let previewHtml = '';
+                if (isImageFile(file.name)) {
+                    previewHtml = `<div class="file-preview-placeholder">🖼️</div>`;
+                    const index = allFiles.indexOf(file);
+
+                    loadImagePreview(file.handle).then(url => {
+                        if (url) {
+                            imageCache.set(index, url);
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.className = 'file-preview';
+                            img.alt = file.name;
+                            img.loading = 'lazy';
+                            row.cells[0].innerHTML = '';
+                            row.cells[0].appendChild(img);
+                        }
+                    }).catch(err => {
+                        console.error(`Erreur de chargement pour ${file.name}:`, err);
+                        row.cells[0].innerHTML = `<div class="file-preview-placeholder" style="color: #e74c3c;">❌</div>`;
+                    });
+                } else {
+                    previewHtml = `<div class="file-preview-placeholder">📄</div>`;
+                }
+
+                // Affichage de l'analyse
+                let analysisHtml = '';
+                if (analysis.country) analysisHtml += `<span style="color: #27ae60;">🇺🇳 ${analysis.country}</span> `;
+                if (analysis.branch) analysisHtml += `<span style="color: #3498db;">🎖️ ${analysis.branch}</span> `;
+                if (analysis.rank) analysisHtml += `<span style="color: #e74c3c;">⭐ ${analysis.rank}</span> `;
+                if (analysis.latinName) analysisHtml += `<span style="color: #9b59b6;">📜 ${analysis.latinName}</span>`;
+                if (!analysis.country && !analysis.branch && !analysis.rank) {
+                    analysisHtml = `<span style="color: #f39c12;">⚠️ Aucun motif reconnu</span>`;
+                }
+
+                row.innerHTML = `
+                    <td>${previewHtml}</td>
+                    <td>${file.name}</td>
+                    <td class="analysis-details">${analysisHtml}</td>
+                    <td class="new-name" ${isModified ? 'style="color: #27ae60; font-weight: 600;"' : ''}>${analysis.newName}</td>
+                `;
+                fileList.appendChild(row);
+            }
+        }
+
+        // Sélection d'un dossier
+        selectFolderBtn.addEventListener('click', async function() {
+            try {
+                if (!('showDirectoryPicker' in window)) {
+                    throw new Error("Votre navigateur ne supporte pas l'API File System Access. Utilisez Chrome ou Edge.");
+                }
+
+                allFiles = [];
+                originalFiles = [];
+                imageCache = new Map();
+                fileList.innerHTML = '';
+                statusMessage.textContent = '';
+                errorMessage.textContent = '';
+                successMessage.textContent = '';
+                consoleOutput.innerHTML = '';
+                logToConsole('Sélection d\'un dossier...');
+
+                directoryHandle = await window.showDirectoryPicker();
+                const files = [];
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        files.push({
+                            handle: entry,
+                            name: entry.name
+                        });
+                    }
+                }
+                allFiles = files;
+                originalFiles = JSON.parse(JSON.stringify(files));
+
+                // Charger les trigrammes, les mappings et la base de traduction
+                loadCountryTrigrams();
+                loadBranchMappings();
+                loadTranslationDb();
+
+                await updateFileList();
+                analyzeBtn.disabled = false;
+                loadWikipediaBtn.disabled = false;
+                totalFilesSpan.textContent = `${allFiles.length} fichier(s) sélectionné(s)`;
+                modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
+                logToConsole(`Dossier chargé avec succès (${files.length} fichiers).`);
+            } catch (err) {
+                errorMessage.textContent = `Erreur : ${err.message}`;
+                logToConsole(`Erreur : ${err.message}`, 'error');
+                analyzeBtn.disabled = true;
+                applyBtn.disabled = true;
+                loadWikipediaBtn.disabled = true;
+            }
+        });
+
+        // Charger la page Wikipedia
+        loadWikipediaBtn.addEventListener('click', async function() {
+            await loadWikipediaData();
+            if (allFiles.length > 0) {
+                await updateFileList();
+            }
+        });
+
+        // Analyser et renommer
+        analyzeBtn.addEventListener('click', async function() {
+            if (allFiles.length === 0) {
+                errorMessage.textContent = "Aucun fichier sélectionné.";
+                logToConsole("Aucun fichier sélectionné.", 'warning');
+                return;
+            }
+
+            // Charger les trigrammes, les mappings et la base de traduction
+            loadCountryTrigrams();
+            loadBranchMappings();
+            loadTranslationDb();
+
+            statusMessage.textContent = "Analyse en cours...";
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+            logToConsole('Analyse des noms de fichiers...');
+
+            analyzeBtn.disabled = true;
+            selectFolderBtn.disabled = true;
+            loadWikipediaBtn.disabled = true;
+
+            // Mettre à jour la liste avec les nouveaux noms
+            await updateFileList();
+
+            // Compter les fichiers à renommer
+            const modifiedCount = allFiles.filter(file => {
+                const analysis = analyzeFilename(file.name);
+                return analysis.newName !== file.name;
+            }).length;
+
+            modifiedFilesSpan.textContent = `${modifiedCount} fichier(s) à renommer`;
+            applyBtn.disabled = modifiedCount === 0;
+            analyzeBtn.disabled = false;
+            selectFolderBtn.disabled = false;
+            loadWikipediaBtn.disabled = false;
+
+            if (modifiedCount > 0) {
+                logToConsole(`Analyse terminée: ${modifiedCount} fichier(s) à renommer.`);
+            } else {
+                logToConsole("Aucun fichier à renommer selon les critères actuels.", 'warning');
+            }
+        });
+
+        // Appliquer les changements
+        applyBtn.addEventListener('click', async function() {
+            // Compter les fichiers à renommer
+            const filesToRename = allFiles.filter(file => {
+                const analysis = analyzeFilename(file.name);
+                return analysis.newName !== file.name;
+            });
+
+            if (filesToRename.length === 0) {
+                errorMessage.textContent = "Aucun fichier à renommer.";
+                logToConsole("Aucun fichier à renommer.", 'warning');
+                return;
+            }
+
+            if (!directoryHandle) {
+                errorMessage.textContent = "Veuillez sélectionner un dossier.";
+                logToConsole("Erreur : Aucun dossier sélectionné.", 'error');
+                return;
+            }
+
+            // Afficher la barre de progression
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+
+            statusMessage.textContent = "Application des changements en cours...";
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+            logToConsole(`Début de l'application des changements (${filesToRename.length} fichiers)...`);
+
+            applyBtn.disabled = true;
+            analyzeBtn.disabled = true;
+            selectFolderBtn.disabled = true;
+            loadWikipediaBtn.disabled = true;
+            undoBtn.disabled = true;
+
+            let successCount = 0;
+            let errorCount = 0;
+            let conflictCount = 0;
+            let processedCount = 0;
+            const totalFiles = filesToRename.length;
+
+            for (const fileObj of filesToRename) {
+                try {
+                    const analysis = analyzeFilename(fileObj.name);
+                    const oldName = fileObj.name;
+                    const newName = analysis.newName;
+
+                    // Vérifier si le nom a été modifié
+                    if (newName === oldName) {
+                        processedCount++;
+                        continue;
+                    }
+
+                    // Vérifier si le nouveau fichier existe déjà
+                    try {
+                        const existingFile = await directoryHandle.getFileHandle(newName, { create: false });
+                        logToConsole(`Conflit : ${newName} existe déjà.`, 'warning');
+                        conflictCount++;
+                        processedCount++;
+                        continue;
+                    } catch (e) {
+                        // Le fichier n'existe pas, on peut continuer
+                    }
+
+                    const fileHandle = fileObj.handle;
+                    const file = await fileHandle.getFile();
+
+                    // Créer le nouveau fichier
+                    const newFileHandle = await directoryHandle.getFileHandle(newName, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(await file.arrayBuffer());
+                    await writable.close();
+
+                    // Supprimer l'ancien fichier
+                    await fileHandle.remove();
+
+                    // Mettre à jour le cache des images
+                    if (isImageFile(oldName)) {
+                        imageCache.delete(allFiles.indexOf(fileObj));
+                    }
+                    if (isImageFile(newName)) {
+                        const url = await loadImagePreview(newFileHandle);
+                        if (url) {
+                            imageCache.set(allFiles.indexOf(fileObj), url);
+                        }
+                    }
+
+                    // Mettre à jour le nom dans allFiles
+                    fileObj.name = newName;
+
+                    logToConsole(`✅ Renommé : ${oldName} → ${newName}`, 'success');
+                    successCount++;
+                    processedCount++;
+
+                    // Mettre à jour la barre de progression
+                    const progress = Math.round((processedCount / totalFiles) * 100);
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                } catch (err) {
+                    logToConsole(`❌ Erreur avec ${fileObj.name} : ${err.message}`, 'error');
+                    errorCount++;
+                    processedCount++;
+
+                    // Mettre à jour la barre de progression même en cas d'erreur
+                    const progress = Math.round((processedCount / totalFiles) * 100);
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                }
+            }
+
+            // Réinitialisation
+            progressContainer.style.display = 'none';
+            applyBtn.disabled = false;
+            analyzeBtn.disabled = false;
+            selectFolderBtn.disabled = false;
+            loadWikipediaBtn.disabled = false;
+            undoBtn.disabled = false;
+
+            // Mettre à jour la liste des fichiers pour refléter les changements
+            await updateFileList();
+
+            statusMessage.textContent = '';
+            if (successCount > 0) {
+                successMessage.textContent = `✅ ${successCount} fichier(s) renommé(s) avec succès.`;
+                modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
+                originalFiles = JSON.parse(JSON.stringify(allFiles));
+            }
+            if (errorCount > 0) {
+                errorMessage.textContent = `❌ ${errorCount} erreur(s) lors du renommage.`;
+            }
+            if (conflictCount > 0) {
+                errorMessage.textContent += ` ⚠️ ${conflictCount} conflit(s) de noms.`;
+            }
+
+            logToConsole(`Fin du renommage : ${successCount} succès, ${errorCount} erreurs, ${conflictCount} conflits.`);
+        });
+
+        // Annuler les modifications
+        undoBtn.addEventListener('click', async function() {
+            if (originalFiles.length === 0) return;
+
+            allFiles = JSON.parse(JSON.stringify(originalFiles));
+            await updateFileList();
+            modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
+            undoBtn.disabled = true;
+            applyBtn.disabled = true;
+            logToConsole('Modifications annulées.', 'success');
+        });
+
+        // Écouteurs pour les changements de template
+        rankTemplateInput.addEventListener('input', updateFileList);
+        countryTrigramsTextarea.addEventListener('input', updateFileList);
+        branchMappingsTextarea.addEventListener('input', updateFileList);
+        wikipediaUrlInput.addEventListener('input', updateFileList);
+        translationDbTextarea.addEventListener('input', updateFileList);
+
+        // Initialisation
+        loadCountryTrigrams();
+        loadBranchMappings();
+        loadTranslationDb();
+    </script>
