@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outil de renommage OTAN avec API MediaWiki</title>
+    <title>Outil de renommage OTAN (détection de tous les tableaux)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -238,7 +238,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎖️ Outil de renommage OTAN avec API MediaWiki</h1>
+        <h1>🎖️ Outil de renommage OTAN (détection de tous les tableaux)</h1>
 
         <div class="button-group">
             <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
@@ -263,7 +263,8 @@ USA=United States,US,American
 CAN=Canada,Canadian
 LVA=Latvia,Latvian
 MNE=Montenegro,Montenegrin
-RUS=Russia,Russian</textarea>
+RUS=Russia,Russian
+BGR=Bulgaria,Bulgarian</textarea>
                     <p class="example">Format: TRIGRAMME=noms_séparés_par_des_virgules</p>
                 </div>
             </div>
@@ -297,8 +298,15 @@ NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
                 <div class="row">
                     <div class="form-group">
                         <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
-                        <input type="url" id="wikipediaUrl" placeholder="https://en.wikipedia.org/wiki/Albanian_Armed_Forces">
-                        <p class="example">Exemple: https://en.wikipedia.org/wiki/Albanian_Armed_Forces</p>
+                        <input type="url" id="wikipediaUrl" placeholder="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO" value="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO">
+                        <p class="example">Exemple: https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="tableSelector">Sélecteur CSS pour les tableaux (optionnel) :</label>
+                        <input type="text" id="tableSelector" placeholder="table" value="table">
+                        <p class="example">Exemple: table (pour cibler tous les tableaux) ou .wikitable (pour les tableaux Wikipedia)</p>
                     </div>
                 </div>
                 <div class="wikipedia-preview" id="wikipediaPreview">
@@ -314,10 +322,20 @@ NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
                 <div class="row">
                     <div class="form-group">
                         <label for="translationDb">Traductions des grades (1 par ligne, ex: Gjeneral lejtant=General Lieutenant) :</label>
-                        <textarea id="translationDb" rows="4" placeholder="Gjeneral lejtant=General Lieutenant&#10;Gjeneral major=Major General">Gjeneral lejtant=General Lieutenant
+                        <textarea id="translationDb" rows="4" placeholder="Gjeneral lejtant=General Lieutenant&#10;Gjeneral major=Major General&#10;Generaal=General&#10;Luitenant-generaal=Lieutenant General">Gjeneral lejtant=General Lieutenant
 Gjeneral major=Major General
 Kolonel=Colonel
-Nënkolonel=Lieutenant Colonel</textarea>
+Nënkolonel=Lieutenant Colonel
+Generaal=General
+Luitenant-generaal=Lieutenant General
+Generaal-majoor=Major General
+Brigadegeneraal=Brigadier General
+Kolonel=Colonel
+Luitenant-kolonel=Lieutenant Colonel
+Majoor=Major
+Kapitein=Captain
+Luitenant=Lieutenant
+Generaal=General</textarea>
                         <p class="example">Format: NOM_ORIGINAL=NOM_LATIN (un par ligne)</p>
                     </div>
                 </div>
@@ -368,6 +386,7 @@ Nënkolonel=Lieutenant Colonel</textarea>
         const branchMappingsTextarea = document.getElementById('branchMappings');
         const rankTemplateInput = document.getElementById('rankTemplate');
         const wikipediaUrlInput = document.getElementById('wikipediaUrl');
+        const tableSelectorInput = document.getElementById('tableSelector');
         const translationDbTextarea = document.getElementById('translationDb');
         const fileList = document.getElementById('fileList');
         const wikipediaTableContainer = document.getElementById('wikipediaTableContainer');
@@ -484,6 +503,19 @@ Nënkolonel=Lieutenant Colonel</textarea>
             return formattedName;
         }
 
+        // Fonction pour vérifier si un tableau contient des grades OTAN
+        function isRankTable(table) {
+            const headers = table.querySelectorAll('th, td');
+            // Vérifier si les en-têtes contiennent des codes OTAN (OF-1, OF-2, etc.)
+            for (let i = 0; i < Math.min(5, headers.length); i++) {
+                const headerText = headers[i].textContent.trim().toUpperCase();
+                if (headerText.includes('OF-') || headerText.includes('OR-') || headerText.includes('NATO')) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Fonction pour charger les données Wikipedia via l'API MediaWiki
         async function loadWikipediaData() {
             const url = wikipediaUrlInput.value.trim();
@@ -525,14 +557,23 @@ Nënkolonel=Lieutenant Colonel</textarea>
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
-                // Trouver tous les tableaux de type "wikitable"
-                const tables = doc.querySelectorAll('table.wikitable');
+                // Trouver tous les tableaux (pas seulement .wikitable)
+                const selector = tableSelectorInput.value || 'table';
+                const tables = doc.querySelectorAll(selector);
+
                 if (tables.length === 0) {
-                    throw new Error("Aucun tableau de type 'wikitable' trouvé.");
+                    throw new Error(`Aucun tableau trouvé avec le sélecteur "${selector}".`);
                 }
 
-                // On prend le premier tableau wikitable
-                const table = tables[0];
+                // Filtrer les tableaux qui contiennent des grades OTAN
+                const rankTables = Array.from(tables).filter(isRankTable);
+
+                if (rankTables.length === 0) {
+                    throw new Error("Aucun tableau de grades OTAN trouvé. Essayez un autre sélecteur ou une autre page.");
+                }
+
+                // Prendre le premier tableau de grades trouvé
+                const table = rankTables[0];
                 const rows = table.querySelectorAll('tr');
                 const result = {};
 
@@ -542,7 +583,9 @@ Nënkolonel=Lieutenant Colonel</textarea>
                 for (let i = 1; i < headerCells.length; i++) {
                     const rank = headerCells[i].textContent.trim();
                     if (rank) {
-                        otanRanks.push(rank.toUpperCase().replace(/[-\s]/g, ''));
+                        // Nettoyer le grade (ex: "OF-1" → "OF1")
+                        const cleanRank = rank.toUpperCase().replace(/[-\s]/g, '');
+                        otanRanks.push(cleanRank);
                     }
                 }
 
@@ -621,12 +664,12 @@ Nënkolonel=Lieutenant Colonel</textarea>
             });
             previewTable.appendChild(headerRow);
 
-            // Ajouter les données (limité à 5 entrées pour l'aperçu)
+            // Ajouter les données (limité à 10 entrées pour l'aperçu)
             let count = 0;
             for (const [country, branches] of Object.entries(data)) {
                 for (const [branch, ranks] of Object.entries(branches)) {
                     for (const [rank, info] of Object.entries(ranks)) {
-                        if (count >= 5) break;
+                        if (count >= 10) break;
 
                         const row = document.createElement('tr');
                         [country, branch, rank, info.latinName].forEach(text => {
@@ -640,9 +683,9 @@ Nënkolonel=Lieutenant Colonel</textarea>
                         previewTable.appendChild(row);
                         count++;
                     }
-                    if (count >= 5) break;
+                    if (count >= 10) break;
                 }
-                if (count >= 5) break;
+                if (count >= 10) break;
             }
 
             wikipediaTableContainer.innerHTML = '';
@@ -1126,6 +1169,7 @@ Nënkolonel=Lieutenant Colonel</textarea>
         countryTrigramsTextarea.addEventListener('input', updateFileList);
         branchMappingsTextarea.addEventListener('input', updateFileList);
         wikipediaUrlInput.addEventListener('input', updateFileList);
+        tableSelectorInput.addEventListener('input', updateFileList);
         translationDbTextarea.addEventListener('input', updateFileList);
 
         // Initialisation
