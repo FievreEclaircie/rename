@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outil de renommage OTAN (GitHub Pages)</title>
+    <title>Outil de renommage OTAN avec API MediaWiki</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -238,7 +238,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎖️ Outil de renommage OTAN (GitHub Pages)</h1>
+        <h1>🎖️ Outil de renommage OTAN avec API MediaWiki</h1>
 
         <div class="button-group">
             <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
@@ -293,7 +293,7 @@ NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
             </div>
 
             <div class="wikipedia-section">
-                <h2>Intégration Wikipedia (via proxy CORS)</h2>
+                <h2>Intégration Wikipedia (API MediaWiki)</h2>
                 <div class="row">
                     <div class="form-group">
                         <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
@@ -357,8 +357,6 @@ Nënkolonel=Lieutenant Colonel</textarea>
         <div id="consoleOutput"></div>
     </div>
 
-    <!-- Proxy CORS pour contourner les restrictions -->
-    <script src="https://cdn.jsdelivr.net/npm/cors-anywhere@1.0.0/dist/cors-anywhere.min.js"></script>
     <script>
         // Éléments DOM
         const selectFolderBtn = document.getElementById('selectFolderBtn');
@@ -391,9 +389,6 @@ Nënkolonel=Lieutenant Colonel</textarea>
         let branchMappings = {};
         let wikipediaData = null;
         let translationDb = {};
-
-        // URL du proxy CORS public (pour contourner les restrictions)
-        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 
         // Fonction pour ajouter un message à la console
         function logToConsole(message, type = 'log') {
@@ -489,7 +484,7 @@ Nënkolonel=Lieutenant Colonel</textarea>
             return formattedName;
         }
 
-        // Fonction pour charger les données Wikipedia via un proxy CORS
+        // Fonction pour charger les données Wikipedia via l'API MediaWiki
         async function loadWikipediaData() {
             const url = wikipediaUrlInput.value.trim();
             if (!url) {
@@ -500,12 +495,15 @@ Nënkolonel=Lieutenant Colonel</textarea>
             }
 
             try {
-                statusMessage.textContent = "Chargement de la page Wikipedia via proxy CORS...";
-                logToConsole(`Appel au proxy CORS pour ${url}...`);
+                statusMessage.textContent = "Chargement de la page Wikipedia via API MediaWiki...";
+                logToConsole(`Appel à l'API MediaWiki pour ${url}...`);
 
-                // Utiliser le proxy CORS pour éviter les restrictions
-                const proxyUrl = `${CORS_PROXY}${url}?no-cache=1`;
-                const response = await fetch(proxyUrl, {
+                // Extraire le titre de la page depuis l'URL
+                const pageTitle = new URL(url).pathname.split('/').pop();
+
+                // Utiliser l'API MediaWiki pour récupérer le contenu HTML
+                const apiUrl = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&format=json&origin=*`;
+                const response = await fetch(apiUrl, {
                     headers: {
                         'Accept': 'text/html',
                         'User-Agent': 'Mozilla/5.0'
@@ -516,7 +514,14 @@ Nënkolonel=Lieutenant Colonel</textarea>
                     throw new Error(`Erreur HTTP ${response.status} lors de la récupération de la page Wikipedia.`);
                 }
 
-                const html = await response.text();
+                const data = await response.json();
+
+                if (!data.parse || !data.parse.text || !data.parse.text['*']) {
+                    throw new Error("Aucun contenu trouvé dans la page Wikipedia.");
+                }
+
+                // Parser le HTML avec DOMParser
+                const html = data.parse.text['*'];
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
