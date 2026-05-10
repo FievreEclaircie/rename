@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outil de renommage OTAN (association images-noms)</title>
+    <title>Outil de renommage OTAN (version finale complète)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -243,13 +243,6 @@
         .file-mapping-item:last-child {
             border-bottom: none;
         }
-        .file-mapping-image {
-            width: 30px;
-            height: 30px;
-            object-fit: contain;
-            margin-right: 10px;
-            border: 1px solid #ddd;
-        }
         @media (max-width: 768px) {
             .file-preview, .file-preview-placeholder {
                 width: 40px;
@@ -261,7 +254,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎖️ Outil de renommage OTAN (association images-noms)</h1>
+        <h1>🎖️ Outil de renommage OTAN (version finale complète)</h1>
 
         <div class="button-group">
             <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
@@ -276,29 +269,48 @@
 
             <div class="row">
                 <div class="form-group">
-                    <label for="countryTrigrams">Trigrammes des pays (1 par ligne, ex: ALB=Albania) :</label>
-                    <textarea id="countryTrigrams" rows="6" placeholder="ALB=Albania,Albanian&#10;BEL=Belgium,Belgian&#10;FRA=France,French">ALB=Albania,Albanian
+                    <label for="countryTrigrams">Trigrammes des pays (1 par ligne, ex: LVA=Latvia,LVAF) :</label>
+                    <textarea id="countryTrigrams" rows="10" placeholder="LVA=Latvia,Latvian,LVAF,Latvian Air Force&#10;SVN=Slovenia,Slovenian&#10;GBR=United Kingdom,British,UK,Great Britain,Royal Air Force,RAF&#10;USA=United States,US,American,USAF,US Air Force&#10;CAN=Canada,Canadian,CAF,Royal Canadian Air Force">ALB=Albania,Albanian
 BEL=Belgium,Belgian
-FRA=France,French
+BGR=Bulgaria,Bulgarian
+CAN=Canada,Canadian,CAF,Royal Canadian Air Force
 DEU=Germany,German
-GBR=United Kingdom,British,UK
-USA=United States,US,American
-CAN=Canada,Canadian
-LVA=Latvia,Latvian
+ESP=Spain,Spanish
+FRA=France,French
+GBR=United Kingdom,British,UK,Great Britain,Royal Air Force,RAF
+HRV=Croatia,Croatian
+HUN=Hungary,Hungarian
+ITA=Italy,Italian
+LVA=Latvia,Latvian,LVAF,Latvian Air Force
 MNE=Montenegro,Montenegrin
+NLD=Netherlands,Dutch
+POL=Poland,Polish
+PRT=Portugal,Portuguese
+ROU=Romania,Romanian
 RUS=Russia,Russian
-BGR=Bulgaria,Bulgarian</textarea>
-                    <p class="example">Format: TRIGRAMME=noms_séparés_par_des_virgules</p>
+SVK=Slovakia,Slovak
+SVN=Slovenia,Slovenian
+TUR=Turkey,Turkish
+USA=United States,US,American,USAF,US Air Force
+NOR=Norway,Norwegian
+DNK=Denmark,Danish
+GRC=Greece,Greek
+FIN=Finland,Finnish
+SWE=Sweden,Swedish
+CZE=Czech Republic,Czech
+ISL=Iceland,Icelandic
+LUX=Luxembourg,Luxembourgish</textarea>
+                    <p class="example">Format: TRIGRAMME=noms_séparés_par_des_virgules (ex: LVA=Latvia,LVAF,Latvian Air Force)</p>
                 </div>
             </div>
 
             <div class="row">
                 <div class="form-group">
-                    <label for="branchMappings">Correspondance des branches (1 par ligne, ex: AIR=air,air force) :</label>
-                    <textarea id="branchMappings" rows="4" placeholder="AIR=air,air force,aviation,RAF&#10;LAND=land,army,ground&#10;NAVY=navy,marine,sea">AIR=air,air force,aviation,RAF,luftwaffe,air army
+                    <label for="branchMappings">Correspondance des branches (1 par ligne, ex: AIR=air,air force,RAF) :</label>
+                    <textarea id="branchMappings" rows="6" placeholder="AIR=air,air force,aviation,RAF,luftwaffe,air army,LVAF&#10;LAND=land,army,ground,terre,infantry,artillery&#10;NAVY=navy,marine,sea,mer,royal navy,marines">AIR=air,air force,aviation,RAF,luftwaffe,air army,LVAF,Slovenian Air Force,Latvian Air Force
 LAND=land,army,ground,terre,infantry,artillery
-NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
-                    <p class="example">Format: BRANCHE=mot1,mot2,mot3 (séparés par des virgules)</p>
+NAVY=navy,marine,sea,mer,royal navy,marines,coast guard</textarea>
+                    <p class="example">Format: BRANCHE=mot1,mot2,mot3 (ex: AIR=air,air force,RAF,LVAF)</p>
                 </div>
             </div>
 
@@ -307,10 +319,10 @@ NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
                     <label for="rankTemplate">Template de renommage :</label>
                     <input type="text" id="rankTemplate" value="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}" placeholder="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}">
                     <p class="template-help">Variables disponibles:
-- {COUNTRY} : Trigramme du pays (ex: ALB)
+- {COUNTRY} : Trigramme du pays (ex: LVA)
 - {BRANCH} : Branche militaire (AIR, LAND, NAVY)
 - {RANK} : Grade OTAN (ex: OF8)
-- {LATIN_NAME} : Nom du grade avec des tirets (ex: Gjeneral-lejtant)
+- {LATIN_NAME} : Nom du grade avec des tirets (ex: General-Lieutenant)
 - {EXT} : Extension du fichier (ex: .svg, .png)</p>
                 </div>
             </div>
@@ -347,30 +359,39 @@ NAVY=navy,marine,sea,mer,royal navy,marines</textarea>
                 <h2>Base de données de traduction (optionnelle)</h2>
                 <div class="row">
                     <div class="form-group">
-                        <label for="translationDb">Traductions des grades (1 par ligne, ex: Gjeneral lejtant=General Lieutenant) :</label>
-                        <textarea id="translationDb" rows="6" placeholder="Gjeneral lejtant=General Lieutenant&#10;Gjeneral major=Major General">Gjeneral lejtant=General Lieutenant
-Gjeneral major=Major General
+                        <label for="translationDb">Traductions des grades (1 par ligne, ex: Gjeneral lejtant=General-Lieutenant) :</label>
+                        <textarea id="translationDb" rows="10" placeholder="Gjeneral lejtant=General-Lieutenant&#10;Gjeneral major=Major-General">Gjeneral lejtant=General-Lieutenant
+Gjeneral major=Major-General
 Kolonel=Colonel
-Nënkolonel=Lieutenant Colonel
+Nënkolonel=Lieutenant-Colonel
 Generaal=General
-Luitenant-generaal=Lieutenant General
-Generaal-majoor=Major General
-Brigadegeneraal=Brigadier General
+Luitenant-generaal=Lieutenant-General
+Generaal-majoor=Major-General
+Brigadegeneraal=Brigadier-General
 Kolonel=Colonel
-Luitenant-kolonel=Lieutenant Colonel
+Luitenant-kolonel=Lieutenant-Colonel
 Majoor=Major
 Kapitein=Captain
 Luitenant=Lieutenant
 Generaal=General
 Генерал=General
-Генерал-лейтенант=Lieutenant General
-Генерал-майор=Major General
-Бригаден генерал=Brigadier General
+Генерал-лейтенант=Lieutenant-General
+Генерал-майор=Major-General
+Бригаден генерал=Brigadier-General
 Полковник=Colonel
-Подполковник=Lieutenant Colonel
+Подполковник=Lieutenant-Colonel
 Майор=Major
-Капитан=Captain</textarea>
-                        <p class="example">Format: NOM_ORIGINAL=NOM_LATIN (un par ligne)</p>
+Капитан=Captain
+General=General
+Lieutenant General=Lieutenant-General
+Major General=Major-General
+Brigadier General=Brigadier-General
+Colonel=Colonel
+Lieutenant Colonel=Lieutenant-Colonel
+Major=Major
+Captain=Captain
+Lieutenant=Lieutenant</textarea>
+                        <p class="example">Format: NOM_ORIGINAL=NOM_LATIN (un par ligne, avec des tirets)</p>
                     </div>
                 </div>
             </div>
@@ -444,7 +465,7 @@ Generaal=General
         let branchMappings = {};
         let wikipediaData = null;
         let translationDb = {};
-        let fileToGradeMap = {}; // Nouvelle map pour associer les fichiers aux grades
+        let fileToGradeMap = {}; // Map pour associer les fichiers aux grades
 
         // Fonction pour ajouter un message à la console
         function logToConsole(message, type = 'log') {
@@ -745,7 +766,7 @@ Generaal=General
                 item.className = 'file-mapping-item';
                 item.innerHTML = `
                     <strong>${filename}</strong> →
-                    ${gradeInfo.country}_${gradeInfo.branch}_${gradeInfo.rank}_${gradeInfo.latinName}
+                    ${gradeInfo.country}_${gradeInfo.branch}_${gradeInfo.rank}_${gradeInfo.latinName}${gradeInfo.extension || '.svg'}
                 `;
                 fileMappingList.appendChild(item);
             }
@@ -838,7 +859,7 @@ Generaal=General
             const originalName = filename.replace(/\.[^/.]+$/, ''); // Supprimer l'extension
             const lowerName = filename.toLowerCase();
             const extension = filename.slice(filename.lastIndexOf('.'));
-            const baseFilename = filename.replace(extension, '').toLowerCase();
+            const baseFilename = originalName.toLowerCase();
 
             // Vérifier si le fichier est dans la map fileToGradeMap
             if (fileToGradeMap[baseFilename]) {
@@ -860,7 +881,7 @@ Generaal=General
             let rank = null;
             let latinName = null;
 
-            // 1. Chercher le pays et la branche dans le nom du fichier
+            // 1. Chercher le pays dans le nom du fichier
             for (const [countryName, trigram] of Object.entries(countryTrigrams)) {
                 if (lowerName.includes(countryName)) {
                     country = trigram;
@@ -868,6 +889,7 @@ Generaal=General
                 }
             }
 
+            // 2. Chercher la branche dans le nom du fichier
             for (const [branchCode, keywords] of Object.entries(branchMappings)) {
                 for (const keyword of keywords) {
                     if (lowerName.includes(keyword)) {
@@ -878,7 +900,8 @@ Generaal=General
                 if (branch) break;
             }
 
-            // 2. Chercher le grade OTAN dans le nom du fichier
+            // 3. Chercher le grade OTAN dans le nom du fichier
+            // Regex améliorée pour capturer OF-8, OF8, OF_8, etc.
             const rankMatch = lowerName.match(/(of|or|w|nco)[-_]?(\d)/i);
             if (rankMatch) {
                 rank = `${rankMatch[1].toUpperCase()}${rankMatch[2]}`;
@@ -920,12 +943,12 @@ Generaal=General
                 }
             }
 
-            // 3. Si aucun grade n'est trouvé, utiliser le grade par défaut
+            // 4. Si aucun grade n'est trouvé, utiliser le grade par défaut
             if (!rank) {
                 rank = 'OF';
             }
 
-            // 4. Si Wikipedia est chargé, essayer de trouver le nom latin
+            // 5. Si Wikipedia est chargé, essayer de trouver le nom latin
             if (wikipediaData && country && branch && rank) {
                 const gradeInfo = wikipediaData[country]?.[branch]?.[rank];
                 if (gradeInfo) {
@@ -933,7 +956,7 @@ Generaal=General
                 }
             }
 
-            // 5. Si aucun nom latin n'est trouvé, essayer la base de traduction
+            // 6. Si aucun nom latin n'est trouvé, essayer la base de traduction
             if (!latinName) {
                 // Extraire le nom local du fichier (ex: "Gjeneral lejtant" dans "ALB-airforce-OF-8-Gjeneral lejtant.svg")
                 const latinMatch = originalName.match(/(?:of|or|w|nco)[-_]?\d[-_]?(.+)/i);
@@ -948,7 +971,7 @@ Generaal=General
                 }
             }
 
-            // 6. Si toujours aucun nom latin, utiliser un nom par défaut
+            // 7. Si toujours aucun nom latin, utiliser un nom par défaut
             if (!latinName) {
                 latinName = 'Unknown';
             }
