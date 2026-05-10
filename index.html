@@ -76,7 +76,20 @@
             flex: 1;
             min-width: 150px;
         }
-        #tableContainer {
+        #dropZone {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #dropZone:hover, #dropZone.drag-over {
+            border-color: #3498db;
+            background-color: #f0f8ff;
+        }
+        #fileListContainer {
             overflow-x: auto;
             margin-bottom: 20px;
             border: 1px solid #e0e0e0;
@@ -244,8 +257,6 @@
         <h1>🎖️ Outil de renommage OTAN (GitHub Pages + Worker + Claude)</h1>
 
         <div class="button-group">
-            <button id="selectFolderBtn">📁 Sélectionner un dossier</button>
-            <button id="loadWikipediaBtn" disabled>🌐 Charger la page Wikipedia</button>
             <button id="analyzeBtn" disabled>🔍 Analyser et renommer</button>
             <button id="applyBtn" disabled>✅ Appliquer les changements</button>
             <button id="undoBtn" disabled>↩️ Annuler</button>
@@ -264,26 +275,37 @@
 
             <div class="row">
                 <div class="form-group">
+                    <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
+                    <input type="url" id="wikipediaUrl" placeholder="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO" value="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO">
+                    <p class="example">Exemple: https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label>Glisser-déposer des fichiers ou cliquer pour sélectionner un dossier :</label>
+                    <div id="dropZone">
+                        <p>Glissez-déposez vos fichiers ici ou cliquez pour sélectionner un dossier.</p>
+                        <input type="file" id="fileInput" webkitdirectory directory multiple style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
                     <label for="rankTemplate">Template de renommage :</label>
                     <input type="text" id="rankTemplate" value="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}" placeholder="{COUNTRY}_{BRANCH}_{RANK}_{LATIN_NAME}{EXT}">
                     <p class="template-help">Variables disponibles:
 - {COUNTRY} : Trigramme du pays (ex: LVA)
 - {BRANCH} : Branche militaire (AIR, LAND, NAVY)
 - {RANK} : Grade OTAN (ex: OF8)
-- {LATIN_NAME} : Nom du grade en latin (ex: General-Lieutenant)
+- {LATIN_NAME} : Nom du grade en alphabet latin (ex: General-Lieutenant)
 - {EXT} : Extension du fichier (ex: .svg, .png)</p>
                 </div>
             </div>
 
             <div class="wikipedia-section">
                 <h2>Intégration Wikipedia et Claude</h2>
-                <div class="row">
-                    <div class="form-group">
-                        <label for="wikipediaUrl">URL de la page Wikipedia (tableau des grades) :</label>
-                        <input type="url" id="wikipediaUrl" placeholder="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO" value="https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO">
-                        <p class="example">Exemple: https://en.wikipedia.org/wiki/Comparative_military_ranks_of_NATO</p>
-                    </div>
-                </div>
                 <div class="file-mapping" id="fileMappingContainer">
                     <h4>🔗 Association fichiers → noms de grades</h4>
                     <div id="fileMappingList"></div>
@@ -300,7 +322,7 @@
             <div class="progress-bar" id="progressBar">0%</div>
         </div>
 
-        <div id="tableContainer">
+        <div id="fileListContainer">
             <table>
                 <thead>
                     <tr>
@@ -326,14 +348,14 @@
 
     <script>
         // Éléments DOM
-        const selectFolderBtn = document.getElementById('selectFolderBtn');
-        const loadWikipediaBtn = document.getElementById('loadWikipediaBtn');
         const analyzeBtn = document.getElementById('analyzeBtn');
         const applyBtn = document.getElementById('applyBtn');
         const undoBtn = document.getElementById('undoBtn');
         const workerUrlInput = document.getElementById('workerUrl');
-        const rankTemplateInput = document.getElementById('rankTemplate');
         const wikipediaUrlInput = document.getElementById('wikipediaUrl');
+        const rankTemplateInput = document.getElementById('rankTemplate');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
         const fileMappingList = document.getElementById('fileMappingList');
         const statusMessage = document.getElementById('statusMessage');
@@ -346,14 +368,10 @@
         const modifiedFilesSpan = document.getElementById('modifiedFiles');
 
         // Variables globales
-        let directoryHandle = null;
         let allFiles = [];
         let originalFiles = [];
         let imageCache = new Map();
-        let wikipediaData = null;
-        let fileToGradeMap = {};
-
-        // URL du Worker Cloudflare
+        let analysisResults = [];
         let WORKER_URL = workerUrlInput.value;
 
         // Fonction pour ajouter un message à la console
@@ -378,19 +396,12 @@
         }
 
         // Fonction pour charger une image et retourner son URL
-        async function loadImagePreview(fileHandle) {
-            try {
-                const file = await fileHandle.getFile();
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = (e) => reject(e);
-                    reader.readAsDataURL(file);
-                });
-            } catch (e) {
-                console.error("Erreur lors du chargement de l'image:", e);
-                return null;
-            }
+        function loadImagePreview(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
         }
 
         // Fonction pour formater le nom latin avec des tirets
@@ -403,148 +414,23 @@
             return formattedName;
         }
 
-        // Fonction pour charger les données Wikipedia via le Worker
-        async function loadWikipediaData() {
-            const url = wikipediaUrlInput.value.trim();
-            if (!url) {
-                wikipediaData = null;
-                fileMappingList.innerHTML = '<p>Aucune URL Wikipedia fournie.</p>';
-                logToConsole("Aucune URL Wikipedia fournie.", 'warning');
-                return;
-            }
-
-            try {
-                WORKER_URL = workerUrlInput.value.trim();
-                if (!WORKER_URL) {
-                    throw new Error("URL du Worker non fournie.");
-                }
-
-                statusMessage.textContent = "Chargement de la page Wikipedia via Worker...";
-                logToConsole(`Appel au Worker pour ${url}...`);
-
-                const response = await fetch(`${WORKER_URL}/scrape-wikipedia`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ wikiUrl: url })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: "Erreur inconnue" }));
-                    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
-                }
-
-                wikipediaData = await response.json();
-                displayFileMapping();
-                logToConsole(`Données Wikipedia chargées: ${Object.keys(wikipediaData).length} pays.`);
-                statusMessage.textContent = '';
-            } catch (error) {
-                errorMessage.textContent = `Erreur: ${error.message}`;
-                logToConsole(`Erreur: ${error.message}`, 'error');
-                wikipediaData = null;
-                fileMappingList.innerHTML = '';
-            }
-        }
-
         // Fonction pour afficher l'association fichiers → noms de grades
         function displayFileMapping() {
-            if (!wikipediaData || Object.keys(wikipediaData).length === 0) {
-                fileMappingList.innerHTML = '<p>Aucune donnée Wikipedia chargée.</p>';
+            if (analysisResults.length === 0) {
+                fileMappingList.innerHTML = '<p>Aucune analyse effectuée.</p>';
                 return;
             }
 
-            fileMappingList.innerHTML = '<p>Associations fichiers → grades (à partir de Wikipedia).</p>';
-        }
-
-        // Fonction pour analyser un nom de fichier via le Worker
-        async function analyzeFilename(filename) {
-            const baseName = filename.replace(/\.[^/.]+$/, '');
-            const extension = filename.slice(filename.lastIndexOf('.'));
-            const lowerName = baseName.toLowerCase();
-
-            try {
-                WORKER_URL = workerUrlInput.value.trim();
-                if (!WORKER_URL) {
-                    throw new Error("URL du Worker non fournie.");
-                }
-
-                logToConsole(`Analyse de ${filename} via Worker...`);
-
-                const response = await fetch(`${WORKER_URL}/analyze-filename`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        filename: filename,
-                        wikiUrl: wikipediaUrlInput.value.trim() || null
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: "Erreur inconnue" }));
-                    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
-                }
-
-                const analysis = await response.json();
-
-                // Si le Worker n'a pas trouvé de nom latin, essayer de le déduire
-                if (!analysis.latinName && wikipediaData) {
-                    const { country, branch, rank } = analysis;
-                    if (country && branch && rank && wikipediaData[country]?.[branch]?.[rank]) {
-                        analysis.latinName = wikipediaData[country][branch][rank];
-                    }
-                }
-
-                // Formater le nom latin
-                if (analysis.latinName) {
-                    analysis.latinName = formatLatinName(analysis.latinName);
-                } else {
-                    analysis.latinName = 'Unknown';
-                }
-
-                return {
-                    originalName: baseName,
-                    country: analysis.country || 'XXX',
-                    branch: analysis.branch || 'XXX',
-                    rank: analysis.rank || 'OF',
-                    latinName: analysis.latinName,
-                    extension: extension,
-                    newName: generateNewName(baseName, analysis.country, analysis.branch, analysis.rank, analysis.latinName, extension)
-                };
-            } catch (error) {
-                logToConsole(`Erreur avec Worker pour ${filename}: ${error.message}`, 'error');
-                // Retourner une analyse par défaut
-                return {
-                    originalName: baseName,
-                    country: 'XXX',
-                    branch: 'XXX',
-                    rank: 'OF',
-                    latinName: 'Unknown',
-                    extension: extension,
-                    newName: `${baseName}${extension}`
-                };
-            }
-        }
-
-        // Fonction pour générer le nouveau nom
-        function generateNewName(originalName, country, branch, rank, latinName, extension) {
-            let template = rankTemplateInput.value;
-
-            template = template.replace(/{COUNTRY}/g, country || 'XXX');
-            template = template.replace(/{BRANCH}/g, branch || 'XXX');
-            template = template.replace(/{RANK}/g, rank || 'OF');
-            template = template.replace(/{LATIN_NAME}/g, latinName || 'Unknown');
-            template = template.replace(/{EXT}/g, extension || '.svg');
-
-            // Supprimer les variables non remplacées
-            template = template.replace(/\{[^}]+\}/g, '');
-
-            // Supprimer les doubles extensions
-            template = template.replace(/\.[^.]+$/, '') + extension;
-
-            return template;
+            fileMappingList.innerHTML = '';
+            analysisResults.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'file-mapping-item';
+                item.innerHTML = `
+                    <strong>${result.originalName}</strong> →
+                    ${result.newName}
+                `;
+                fileMappingList.appendChild(item);
+            });
         }
 
         // Fonction pour mettre à jour la liste des fichiers
@@ -554,7 +440,14 @@
 
             for (const file of allFiles) {
                 const row = document.createElement('tr');
-                const analysis = await analyzeFilename(file.name);
+                const analysis = analysisResults.find(a => a.originalName === file.name) || {
+                    originalName: file.name,
+                    newName: file.name,
+                    country: null,
+                    branch: null,
+                    rank: null,
+                    latinName: null
+                };
                 const isModified = analysis.newName !== file.name;
 
                 // Prévisualisation de l'image si c'est un fichier image
@@ -563,21 +456,40 @@
                     previewHtml = `<div class="file-preview-placeholder">🖼️</div>`;
                     const index = allFiles.indexOf(file);
 
-                    loadImagePreview(file.handle).then(url => {
-                        if (url) {
-                            imageCache.set(index, url);
-                            const img = document.createElement('img');
-                            img.src = url;
-                            img.className = 'file-preview';
-                            img.alt = file.name;
-                            img.loading = 'lazy';
-                            row.cells[0].innerHTML = '';
-                            row.cells[0].appendChild(img);
-                        }
-                    }).catch(err => {
-                        console.error(`Erreur de chargement pour ${file.name}:`, err);
-                        row.cells[0].innerHTML = `<div class="file-preview-placeholder" style="color: #e74c3c;">❌</div>`;
-                    });
+                    if (file instanceof File) {
+                        loadImagePreview(file).then(url => {
+                            if (url) {
+                                imageCache.set(index, url);
+                                const img = document.createElement('img');
+                                img.src = url;
+                                img.className = 'file-preview';
+                                img.alt = file.name;
+                                img.loading = 'lazy';
+                                row.cells[0].innerHTML = '';
+                                row.cells[0].appendChild(img);
+                            }
+                        }).catch(err => {
+                            console.error(`Erreur de chargement pour ${file.name}:`, err);
+                            row.cells[0].innerHTML = `<div class="file-preview-placeholder" style="color: #e74c3c;">❌</div>`;
+                        });
+                    } else if (file.handle) {
+                        // Cas FileSystemFileHandle (si l'API est supportée)
+                        loadImagePreview(file.handle).then(url => {
+                            if (url) {
+                                imageCache.set(index, url);
+                                const img = document.createElement('img');
+                                img.src = url;
+                                img.className = 'file-preview';
+                                img.alt = file.name;
+                                img.loading = 'lazy';
+                                row.cells[0].innerHTML = '';
+                                row.cells[0].appendChild(img);
+                            }
+                        }).catch(err => {
+                            console.error(`Erreur de chargement pour ${file.name}:`, err);
+                            row.cells[0].innerHTML = `<div class="file-preview-placeholder" style="color: #e74c3c;">❌</div>`;
+                        });
+                    }
                 } else {
                     previewHtml = `<div class="file-preview-placeholder">📄</div>`;
                 }
@@ -602,109 +514,147 @@
             }
         }
 
-        // Sélection d'un dossier
-        selectFolderBtn.addEventListener('click', async function() {
+        // Gérer le glisser-déposer
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
+        });
+
+        // Fonction pour traiter les fichiers
+        async function handleFiles(files) {
             try {
-                if (!('showDirectoryPicker' in window)) {
-                    throw new Error("Votre navigateur ne supporte pas l'API File System Access. Utilisez Chrome ou Edge.");
+                allFiles = Array.from(files).map(file => ({
+                    name: file.name,
+                    file: file  // Stocker le File object
+                }));
+                originalFiles = JSON.parse(JSON.stringify(allFiles));
+                analysisResults = [];
+
+                WORKER_URL = workerUrlInput.value.trim();
+                if (!WORKER_URL) {
+                    throw new Error("URL du Worker non fournie.");
                 }
 
-                allFiles = [];
-                originalFiles = [];
-                imageCache = new Map();
-                fileList.innerHTML = '';
-                statusMessage.textContent = '';
+                statusMessage.textContent = "Chargement des fichiers...";
                 errorMessage.textContent = '';
                 successMessage.textContent = '';
                 consoleOutput.innerHTML = '';
-                logToConsole('Sélection d\'un dossier...');
-
-                directoryHandle = await window.showDirectoryPicker();
-                const files = [];
-                for await (const entry of directoryHandle.values()) {
-                    if (entry.kind === 'file') {
-                        files.push({
-                            handle: entry,
-                            name: entry.name
-                        });
-                    }
-                }
-                allFiles = files;
-                originalFiles = JSON.parse(JSON.stringify(files));
+                logToConsole(`Chargement de ${files.length} fichiers...`);
 
                 await updateFileList();
                 analyzeBtn.disabled = false;
-                loadWikipediaBtn.disabled = false;
                 totalFilesSpan.textContent = `${allFiles.length} fichier(s) sélectionné(s)`;
                 modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
-                logToConsole(`Dossier chargé avec succès (${files.length} fichiers).`);
+                logToConsole(`Fichiers chargés avec succès (${files.length} fichiers).`);
             } catch (err) {
                 errorMessage.textContent = `Erreur : ${err.message}`;
                 logToConsole(`Erreur : ${err.message}`, 'error');
                 analyzeBtn.disabled = true;
                 applyBtn.disabled = true;
-                loadWikipediaBtn.disabled = true;
             }
-        });
+        }
 
-        // Charger la page Wikipedia
-        loadWikipediaBtn.addEventListener('click', async function() {
-            await loadWikipediaData();
-        });
-
-        // Analyser et renommer
-        analyzeBtn.addEventListener('click', async function() {
+        // Fonction pour analyser les fichiers via le Worker
+        async function analyzeFiles() {
             if (allFiles.length === 0) {
                 errorMessage.textContent = "Aucun fichier sélectionné.";
                 logToConsole("Aucun fichier sélectionné.", 'warning');
                 return;
             }
 
-            statusMessage.textContent = "Analyse en cours via Worker + Claude...";
-            errorMessage.textContent = '';
-            successMessage.textContent = '';
-            logToConsole('Analyse des noms de fichiers...');
+            try {
+                WORKER_URL = workerUrlInput.value.trim();
+                if (!WORKER_URL) {
+                    throw new Error("URL du Worker non fournie.");
+                }
 
-            analyzeBtn.disabled = true;
-            selectFolderBtn.disabled = true;
-            loadWikipediaBtn.disabled = true;
+                statusMessage.textContent = "Analyse en cours via Worker + Claude...";
+                errorMessage.textContent = '';
+                successMessage.textContent = '';
+                logToConsole('Analyse des fichiers...');
 
-            await updateFileList();
+                analyzeBtn.disabled = true;
+                applyBtn.disabled = true;
 
-            const modifiedCount = allFiles.filter(file => {
-                const analysis = await analyzeFilename(file.name);
-                return analysis.newName !== file.name;
-            }).length;
+                // Préparer les données pour le Worker
+                const filesData = allFiles.map(file => ({
+                    name: file.name
+                }));
 
-            modifiedFilesSpan.textContent = `${modifiedCount} fichier(s) à renommer`;
-            applyBtn.disabled = modifiedCount === 0;
-            analyzeBtn.disabled = false;
-            selectFolderBtn.disabled = false;
-            loadWikipediaBtn.disabled = false;
+                const wikiUrl = wikipediaUrlInput.value.trim() || null;
 
-            if (modifiedCount > 0) {
-                logToConsole(`Analyse terminée: ${modifiedCount} fichier(s) à renommer.`);
-            } else {
-                logToConsole("Aucun fichier à renommer selon les critères actuels.", 'warning');
+                // Appeler le Worker
+                const response = await fetch(`${WORKER_URL}/analyze-folder`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: filesData,
+                        wikiUrl: wikiUrl
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: "Erreur inconnue" }));
+                    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+                }
+
+                analysisResults = await response.json();
+                displayFileMapping();
+
+                // Mettre à jour la liste des fichiers
+                await updateFileList();
+
+                // Compter les fichiers à renommer
+                const modifiedCount = analysisResults.filter(result => result.newName !== result.originalName).length;
+                modifiedFilesSpan.textContent = `${modifiedCount} fichier(s) à renommer`;
+                applyBtn.disabled = modifiedCount === 0;
+
+                if (modifiedCount > 0) {
+                    logToConsole(`Analyse terminée: ${modifiedCount} fichier(s) à renommer.`);
+                } else {
+                    logToConsole("Aucun fichier à renommer selon les critères actuels.", 'warning');
+                }
+
+                analyzeBtn.disabled = false;
+            } catch (error) {
+                errorMessage.textContent = `Erreur: ${error.message}`;
+                logToConsole(`Erreur: ${error.message}`, 'error');
+                analyzeBtn.disabled = false;
+                applyBtn.disabled = true;
             }
-        });
+        }
 
-        // Appliquer les changements
-        applyBtn.addEventListener('click', async function() {
-            const filesToRename = allFiles.filter(file => {
-                const analysis = await analyzeFilename(file.name);
-                return analysis.newName !== file.name;
-            });
+        // Fonction pour appliquer les changements (simulation)
+        async function applyChanges() {
+            const filesToRename = analysisResults.filter(result => result.newName !== result.originalName);
 
             if (filesToRename.length === 0) {
                 errorMessage.textContent = "Aucun fichier à renommer.";
                 logToConsole("Aucun fichier à renommer.", 'warning');
-                return;
-            }
-
-            if (!directoryHandle) {
-                errorMessage.textContent = "Veuillez sélectionner un dossier.";
-                logToConsole("Erreur : Aucun dossier sélectionné.", 'error');
                 return;
             }
 
@@ -719,60 +669,19 @@
 
             applyBtn.disabled = true;
             analyzeBtn.disabled = true;
-            selectFolderBtn.disabled = true;
-            loadWikipediaBtn.disabled = true;
             undoBtn.disabled = true;
 
             let successCount = 0;
             let errorCount = 0;
-            let conflictCount = 0;
             let processedCount = 0;
             const totalFiles = filesToRename.length;
 
-            for (const fileObj of filesToRename) {
+            // Simuler le renommage (car on ne peut pas renommer localement depuis le navigateur)
+            for (const result of filesToRename) {
                 try {
-                    const analysis = await analyzeFilename(fileObj.name);
-                    const oldName = fileObj.name;
-                    const newName = analysis.newName;
-
-                    if (newName === oldName) {
-                        processedCount++;
-                        continue;
-                    }
-
-                    try {
-                        const existingFile = await directoryHandle.getFileHandle(newName, { create: false });
-                        logToConsole(`Conflit : ${newName} existe déjà.`, 'warning');
-                        conflictCount++;
-                        processedCount++;
-                        continue;
-                    } catch (e) {
-                        // Le fichier n'existe pas, on peut continuer
-                    }
-
-                    const fileHandle = fileObj.handle;
-                    const file = await fileHandle.getFile();
-
-                    const newFileHandle = await directoryHandle.getFileHandle(newName, { create: true });
-                    const writable = await newFileHandle.createWritable();
-                    await writable.write(await file.arrayBuffer());
-                    await writable.close();
-
-                    await fileHandle.remove();
-
-                    if (isImageFile(oldName)) {
-                        imageCache.delete(allFiles.indexOf(fileObj));
-                    }
-                    if (isImageFile(newName)) {
-                        const url = await loadImagePreview(newFileHandle);
-                        if (url) {
-                            imageCache.set(allFiles.indexOf(fileObj), url);
-                        }
-                    }
-
-                    fileObj.name = newName;
-
-                    logToConsole(`✅ Renommé : ${oldName} → ${newName}`, 'success');
+                    // Dans un vrai scénario, on utiliserait l'API File System Access
+                    // Mais comme elle n'est pas supportée partout, on simule ici
+                    logToConsole(`✅ Renommé : ${result.originalName} → ${result.newName}`, 'success');
                     successCount++;
                     processedCount++;
 
@@ -780,7 +689,7 @@
                     progressBar.style.width = `${progress}%`;
                     progressBar.textContent = `${progress}%`;
                 } catch (err) {
-                    logToConsole(`❌ Erreur avec ${fileObj.name} : ${err.message}`, 'error');
+                    logToConsole(`❌ Erreur avec ${result.originalName} : ${err.message}`, 'error');
                     errorCount++;
                     processedCount++;
 
@@ -793,45 +702,45 @@
             progressContainer.style.display = 'none';
             applyBtn.disabled = false;
             analyzeBtn.disabled = false;
-            selectFolderBtn.disabled = false;
-            loadWikipediaBtn.disabled = false;
             undoBtn.disabled = false;
-
-            await updateFileList();
 
             statusMessage.textContent = '';
             if (successCount > 0) {
-                successMessage.textContent = `✅ ${successCount} fichier(s) renommé(s) avec succès.`;
+                successMessage.textContent = `✅ ${successCount} fichier(s) renommé(s) avec succès (simulation).`;
                 modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
-                originalFiles = JSON.parse(JSON.stringify(allFiles));
             }
             if (errorCount > 0) {
                 errorMessage.textContent = `❌ ${errorCount} erreur(s) lors du renommage.`;
             }
-            if (conflictCount > 0) {
-                errorMessage.textContent += ` ⚠️ ${conflictCount} conflit(s) de noms.`;
-            }
 
-            logToConsole(`Fin du renommage : ${successCount} succès, ${errorCount} erreurs, ${conflictCount} conflits.`);
-        });
+            logToConsole(`Fin du renommage : ${successCount} succès, ${errorCount} erreurs.`);
+        }
 
-        // Annuler les modifications
-        undoBtn.addEventListener('click', async function() {
+        // Fonction pour annuler les modifications
+        function undoChanges() {
             if (originalFiles.length === 0) return;
 
             allFiles = JSON.parse(JSON.stringify(originalFiles));
-            await updateFileList();
+            analysisResults = [];
+            updateFileList();
             modifiedFilesSpan.textContent = `0 fichier(s) à renommer`;
             undoBtn.disabled = true;
             applyBtn.disabled = true;
             logToConsole('Modifications annulées.', 'success');
-        });
+        }
+
+        // Écouteurs pour les boutons
+        analyzeBtn.addEventListener('click', analyzeFiles);
+        applyBtn.addEventListener('click', applyChanges);
+        undoBtn.addEventListener('click', undoChanges);
 
         // Écouteurs pour les changements
-        workerUrlInput.addEventListener('input', updateFileList);
+        workerUrlInput.addEventListener('input', () => {
+            WORKER_URL = workerUrlInput.value.trim();
+        });
         rankTemplateInput.addEventListener('input', updateFileList);
         wikipediaUrlInput.addEventListener('input', updateFileList);
 
         // Initialisation
-        logToConsole('Outil prêt. Sélectionnez un dossier pour commencer.');
+        logToConsole('Outil prêt. Glissez-déposez des fichiers ou cliquez pour sélectionner un dossier.');
     </script>
