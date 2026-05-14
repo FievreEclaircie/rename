@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -192,32 +191,32 @@ function render() {
       var img = document.createElement("img");
       img.className = "thumb"; img.src = e.blobUrl; t1.appendChild(img);
     } else if (e.status === "loading") {
-      t1.innerHTML = '<div class="tph"><span class="spin"></span></div>';
+      t1.innerHTML = "<div class=\"tph\"><span class=\"spin\"></span></div>";
     } else {
-      t1.innerHTML = '<div class="tph">🎖</div>';
+      t1.innerHTML = "<div class=\"tph\">&#127894;</div>";
     }
     var t2 = document.createElement("td");
     var src = (e.imgUrl || "").split("/").pop().replace(/%20/g, " ").slice(0, 40);
-    t2.innerHTML = '<div class="fn">' + src + '</div>';
+    t2.innerHTML = "<div class=\"fn\">" + src + "</div>";
     var t3 = document.createElement("td");
-    var badges = '<div class="badges">';
-    if (e.country) badges += '<span class="badge bc">' + e.country + '</span> ';
-    if (e.branch)  badges += '<span class="badge bb">' + e.branch  + '</span>';
-    badges += '</div>';
+    var badges = "<div class=\"badges\">";
+    if (e.country) badges += "<span class=\"badge bc\">" + e.country + "</span> ";
+    if (e.branch)  badges += "<span class=\"badge bb\">" + e.branch  + "</span>";
+    badges += "</div>";
     t3.innerHTML = badges;
     var t4 = document.createElement("td");
-    t4.innerHTML = '<span class="badge br">' + (e.rank || "?") + '</span><div class="fn" style="margin-top:3px;color:var(--text)">' + (e.gradeName || "") + '</div>';
+    t4.innerHTML = "<span class=\"badge br\">" + (e.rank || "?") + "</span><div class=\"fn\" style=\"margin-top:3px;color:var(--text)\">" + (e.gradeName || "") + "</div>";
     var t5 = document.createElement("td");
-    t5.innerHTML = '<div class="nn">' + e.fileName + '</div>';
+    t5.innerHTML = "<div class=\"nn\">" + e.fileName + "</div>";
     var t6 = document.createElement("td");
     if (e.status === "ok")
-      t6.innerHTML = '<span style="color:var(--accent2);font-size:16px">✓</span>';
+      t6.innerHTML = "<span style=\"color:var(--accent2);font-size:16px\">&#10003;</span>";
     else if (e.status === "err")
-      t6.innerHTML = '<span title="' + (e.error || "") + '" style="color:var(--danger);font-size:16px;cursor:help">✗</span>';
+      t6.innerHTML = "<span title=\"" + (e.error || "") + "\" style=\"color:var(--danger);font-size:16px;cursor:help\">&#10007;</span>";
     else if (e.status === "loading")
-      t6.innerHTML = '<span class="spin"></span>';
+      t6.innerHTML = "<span class=\"spin\"></span>";
     else
-      t6.innerHTML = '<span style="color:var(--text-dim)">—</span>';
+      t6.innerHTML = "<span style=\"color:var(--text-dim)\">&#8212;</span>";
     tr.appendChild(t1); tr.appendChild(t2); tr.appendChild(t3);
     tr.appendChild(t4); tr.appendChild(t5); tr.appendChild(t6);
     tbdy.appendChild(tr);
@@ -244,7 +243,7 @@ scrapeBtn.addEventListener("click", function() {
   })
   .then(function(data) {
     if (data.error) throw new Error(data.error);
-    log(data.count + " images trouvées - branche : " + data.branch, "ok");
+    log(data.count + " images trouvees - branche : " + data.branch, "ok");
     wDot.className = "dot ok";
     wSt.textContent = data.count + " images - " + data.branch;
     state.entries = data.entries.map(function(e) {
@@ -273,7 +272,7 @@ function downloadAll(workerUrl) {
   prog.style.display = "block";
   pFill.style.width = "0%";
   pPct.textContent = "0%";
-  log("Téléchargement de " + total + " images...", "info");
+  log("Telechargement de " + total + " images...", "info");
   var BATCH = 5;
   var i = 0;
 
@@ -281,9 +280,9 @@ function downloadAll(workerUrl) {
     if (i >= total) {
       pFill.style.width = "100%";
       pPct.textContent = "100%";
-      pTxt.textContent = "Terminé - " + done + " succès, " + errs + " erreur(s)";
+      pTxt.textContent = "Termine - " + done + " succes, " + errs + " erreur(s)";
       setTimeout(function(){ prog.style.display = "none"; }, 3000);
-      log("Terminé: " + done + " succès, " + errs + " erreurs", done > 0 ? "ok" : "err");
+      log("Termine: " + done + " succes, " + errs + " erreurs", done > 0 ? "ok" : "err");
       stats();
       return Promise.resolve();
     }
@@ -293,33 +292,33 @@ function downloadAll(workerUrl) {
       e.status = "loading"; render();
       var proxyUrl = workerUrl + "/proxy-image?url=" + encodeURIComponent(e.imgUrl);
       return fetch(proxyUrl)
-      .then(function(r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        var ct = r.headers.get("content-type") || "";
-        return r.arrayBuffer().then(function(buf) {
-          if (ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1) {
-            return svgToPng(buf);
-          }
-          return new Blob([buf], {type: "image/png"});
+        .then(function(r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          var ct = r.headers.get("content-type") || "";
+          return r.arrayBuffer().then(function(buf) {
+            if (ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1) {
+              return svgToPng(buf);
+            }
+            return new Blob([buf], {type: "image/png"});
+          });
+        })
+        .then(function(blob) {
+          e.blob = blob;
+          e.blobUrl = URL.createObjectURL(blob);
+          e.status = "ok"; done++;
+          log("OK " + e.fileName, "ok");
+        })
+        .catch(function(err) {
+          e.status = "err"; e.error = err.message; errs++;
+          log("ERR " + e.fileName + ": " + err.message, "err");
+        })
+        .then(function() {
+          var pct = Math.round(((done + errs) / total) * 100);
+          pFill.style.width = pct + "%";
+          pPct.textContent  = pct + "%";
+          pTxt.textContent  = (done + errs) + " / " + total;
+          render(); stats();
         });
-      })
-      .then(function(blob) {
-        e.blob = blob;
-        e.blobUrl = URL.createObjectURL(blob);
-        e.status = "ok"; done++;
-        log("OK " + e.fileName, "ok");
-      })
-      .catch(function(err) {
-        e.status = "err"; e.error = err.message; errs++;
-        log("ERR " + e.fileName + ": " + err.message, "err");
-      })
-      .then(function() {
-        var pct = Math.round(((done + errs) / total) * 100);
-        pFill.style.width = pct + "%";
-        pPct.textContent  = pct + "%";
-        pTxt.textContent  = (done + errs) + " / " + total;
-        render(); stats();
-      });
     })).then(nextBatch);
   }
 
@@ -357,7 +356,7 @@ zipBtn.addEventListener("click", function() {
   var ok = state.entries.filter(function(e){ return e.status === "ok" && e.blob; });
   if (!ok.length) return;
   zipBtn.disabled = true;
-  actSt.innerHTML = '<span style="color:var(--warn)">Génération ZIP...</span>';
+  actSt.innerHTML = "<span style=\"color:var(--warn)\">Generation ZIP...</span>";
   log("ZIP: " + ok.length + " fichiers...", "info");
   var zip = new JSZip();
   var chain = Promise.resolve();
@@ -372,7 +371,7 @@ zipBtn.addEventListener("click", function() {
     return zip.generateAsync(
       {type: "blob", compression: "DEFLATE", compressionOptions: {level: 6}},
       function(m) {
-        actSt.innerHTML = '<span style="color:var(--warn)">ZIP ' + m.percent.toFixed(0) + '%</span>';
+        actSt.innerHTML = "<span style=\"color:var(--warn)\">ZIP " + m.percent.toFixed(0) + "%</span>";
       }
     );
   })
@@ -382,11 +381,11 @@ zipBtn.addEventListener("click", function() {
     a.download = "OTAN_grades_" + new Date().toISOString().slice(0, 10) + ".zip";
     a.click();
     URL.revokeObjectURL(a.href);
-    actSt.innerHTML = '<span style="color:var(--accent2)">OK - ' + ok.length + ' fichiers téléchargés</span>';
-    log("ZIP généré: " + ok.length + " fichiers", "ok");
+    actSt.innerHTML = "<span style=\"color:var(--accent2)\">OK - " + ok.length + " fichiers telecharges</span>";
+    log("ZIP genere: " + ok.length + " fichiers", "ok");
   })
   .catch(function(e) {
-    actSt.innerHTML = '<span style="color:var(--danger)">Erreur: ' + e.message + '</span>';
+    actSt.innerHTML = "<span style=\"color:var(--danger)\">Erreur: " + e.message + "</span>";
     log("Erreur ZIP: " + e.message, "err");
   })
   .finally(function() {
@@ -412,14 +411,13 @@ clearBtn.addEventListener("click", function() {
   state.entries.forEach(function(e){ if (e.blobUrl) URL.revokeObjectURL(e.blobUrl); });
   state.entries = [];
   wDot.className = "dot";
-  wSt.textContent = "Non chargée";
+  wSt.textContent = "Non chargee";
   actSt.innerHTML = "";
   render(); stats();
-  log("Réinitialisé", "warn");
+  log("Reinitialise", "warn");
 });
 
-log("THOT prêt. Colle une URL Wikipedia et clique Analyser Wikipedia.", "info");
+log("THOT pret. Colle une URL Wikipedia et clique Analyser Wikipedia.", "info");
 </script>
-
 </body>
 </html>
