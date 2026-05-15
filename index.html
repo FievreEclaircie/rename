@@ -299,6 +299,26 @@ dlBtn.addEventListener("click", function() {
   downloadAll(workerUrl);
 });
 
+  function loadImgViaBrowser(imgUrl) {
+  return new Promise(function(res, rej) {
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function() {
+      var cv = document.createElement("canvas");
+      cv.width  = img.naturalWidth  || 300;
+      cv.height = img.naturalHeight || 300;
+      cv.getContext("2d").drawImage(img, 0, 0);
+      cv.toBlob(function(b) {
+        if (b) res(b);
+        else rej(new Error("toBlob failed"));
+      }, "image/png");
+    };
+    img.onerror = function() {
+      rej(new Error("Image load failed"));
+    };
+    img.src = imgUrl;
+  });
+}
 function downloadAll(workerUrl) {
   var total = state.entries.length;
   var done = 0, errs = 0;
@@ -323,17 +343,7 @@ function downloadAll(workerUrl) {
     i += BATCH;
     return Promise.all(batch.map(function(e) {
       e.status = "loading"; render();
-      return fetch(e.imgUrl)
-        .then(function(r) {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          var ct = r.headers.get("content-type") || "";
-          return r.arrayBuffer().then(function(buf) {
-            if (ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1) {
-              return svgToPng(buf);
-            }
-            return new Blob([buf], {type: "image/png"});
-          });
-        })
+      return loadImgViaBrowser(e.imgUrl)
         .then(function(blob) {
           e.blob = blob;
           e.blobUrl = URL.createObjectURL(blob);
