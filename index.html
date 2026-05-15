@@ -326,7 +326,7 @@ function downloadAll(workerUrl) {
   pFill.style.width = "0%";
   pPct.textContent = "0%";
   log("Telechargement de " + total + " images...", "info");
-  var BATCH = 2;
+  var BATCH = 5;
   var i = 0;
 
   function nextBatch() {
@@ -343,7 +343,18 @@ function downloadAll(workerUrl) {
     i += BATCH;
     return Promise.all(batch.map(function(e) {
       e.status = "loading"; render();
-      return loadImgViaBrowser(e.imgUrl)
+      var proxyUrl = workerUrl + "/proxy-image?url=" + encodeURIComponent(e.imgUrl);
+      return fetch(proxyUrl)
+        .then(function(r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          var ct = r.headers.get("content-type") || "";
+          return r.arrayBuffer().then(function(buf) {
+            if (ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1) {
+              return svgToPng(buf);
+            }
+            return new Blob([buf], {type: "image/png"});
+          });
+        })
         .then(function(blob) {
           e.blob = blob;
           e.blobUrl = URL.createObjectURL(blob);
