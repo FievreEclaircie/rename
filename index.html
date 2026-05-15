@@ -291,6 +291,7 @@ function downloadAll(workerUrl) {
     i += BATCH;
     return Promise.all(batch.map(function(e) {
       e.status = "loading"; render();
+      console.log("imgUrl:", e.imgUrl);
       var proxyUrl = workerUrl + "/proxy-image?url=" + encodeURIComponent(e.imgUrl);
       return fetch(proxyUrl)
         .then(function(r) {
