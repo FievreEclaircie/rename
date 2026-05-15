@@ -255,7 +255,7 @@ scrapeBtn.addEventListener("click", function() {
       };
     });
     render(); stats();
-    return downloadAll(workerUrl);
+    gi("dlStartBtn").disabled = false;
   })
   .catch(function(e) {
     wDot.className = "dot error";
@@ -415,8 +415,14 @@ clearBtn.addEventListener("click", function() {
   wDot.className = "dot";
   wSt.textContent = "Non chargee";
   actSt.innerHTML = "";
+  gi("dlStartBtn").disabled = true;
   render(); stats();
   log("Reinitialise", "warn");
+});
+gi("dlStartBtn").addEventListener("click", function() {
+  var workerUrl = workerUrlEl.value.trim();
+  gi("dlStartBtn").disabled = true;
+  downloadAll(workerUrl);
 });
 
 log("THOT pret. Colle une URL Wikipedia et clique Analyser Wikipedia.", "info");
