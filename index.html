@@ -6,7 +6,7 @@
 <title>THOT — Renommage OTAN</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap');
-  :root{--bg:#0a0c10;--surface:#0f1318;--surface2:#161b22;--border:#21262d;--border-active:#30363d;--accent:#58a6ff;--accent2:#3fb950;--warn:#d29922;--danger:#f85149;--text:#e6edf3;--text-muted:#7d8590;--text-dim:#484f58;--mono:'Share Tech Mono',monospace;--sans:'Barlow',sans-serif;--cond:'Barlow Condensed',sans-serif;}
+  :root{--bg:#0a0c10;--surface:#0f1318;--surface2:#161b22;--border:#21262d;--border-active:#30363d;--accent:#58a6ff;--accent2:#3fb950;--warn:#d29922;--danger:#f85149;--text:#e6edf3;--text-muted:#7d8590;--text-dim:#484f58;--mono:"Share Tech Mono",monospace;--sans:"Barlow",sans-serif;--cond:"Barlow Condensed",sans-serif;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
   .app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:300px 1fr;height:100vh;}
@@ -20,7 +20,7 @@
   .sec{padding:16px;border-bottom:1px solid var(--border);}
   .sec h3{font-family:var(--cond);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;}
   label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-family:var(--mono);}
-  input[type=url],input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;margin-bottom:8px;}
+  input[type=url]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;margin-bottom:8px;}
   input:focus{border-color:var(--accent);}
   .hint{font-size:10px;color:var(--text-dim);font-family:var(--mono);margin-top:-4px;margin-bottom:8px;line-height:1.5;}
   .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .15s;width:100%;margin-bottom:6px;text-transform:uppercase;}
@@ -30,6 +30,10 @@
   .btn-primary:hover:not(:disabled){background:#79b8ff;color:#000;}
   .btn-success{background:var(--accent2);color:#000;border-color:var(--accent2);font-weight:700;}
   .btn-success:hover:not(:disabled){background:#56d364;color:#000;}
+  .branch-group{display:flex;gap:6px;margin-bottom:8px;}
+  .branch-btn{flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-family:var(--cond);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;}
+  .branch-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(88,166,255,.08);}
+  .branch-btn:hover:not(.active){border-color:var(--border-active);color:var(--text);}
   .wstatus{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;margin-bottom:10px;}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);flex-shrink:0;}
   .dot.ok{background:var(--accent2);}.dot.loading{background:var(--warn);animation:pulse 1s infinite;}.dot.error{background:var(--danger);}
@@ -77,8 +81,8 @@
 <header>
   <div class="logo">THOT <span>// OTAN IMAGE RENAMER</span></div>
   <div class="hstats">
-    <div class="stat">TROUVÉS <strong id="hT">0</strong></div>
-    <div class="stat">TÉLÉCHARGÉS <strong id="hD">0</strong></div>
+    <div class="stat">TROUVES <strong id="hT">0</strong></div>
+    <div class="stat">TELECHARGES <strong id="hD">0</strong></div>
     <div class="stat">ERREURS <strong id="hE">0</strong></div>
   </div>
 </header>
@@ -90,22 +94,23 @@
   </div>
   <div class="sec">
     <h3>Source Wikipedia</h3>
-    <div class="wstatus"><div class="dot" id="wDot"></div><span id="wSt">Non chargée</span></div>
+    <div class="wstatus"><div class="dot" id="wDot"></div><span id="wSt">Non chargee</span></div>
     <label>URL page grades OTAN</label>
     <input type="url" id="wikiUrl" placeholder="https://en.wikipedia.org/wiki/Ranks_and_insignia_of_NATO_air_forces_officers">
     <p class="hint">Compatible avec toutes les pages de grades OTAN Wikipedia</p>
-    <div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button class="btn" id="branchAIR" data-b="AIR" style="flex:1;padding:6px;">AIR</button>
-      <button class="btn" id="branchTERRE" data-b="TERRE" style="flex:1;padding:6px;">TERRE</button>
-      <button class="btn" id="branchMER" data-b="MER" style="flex:1;padding:6px;">MER</button>
+    <label>Branche militaire</label>
+    <div class="branch-group">
+      <div class="branch-btn active" id="bAIR">AIR</div>
+      <div class="branch-btn" id="bTERRE">TERRE</div>
+      <div class="branch-btn" id="bMER">MER</div>
     </div>
     <button class="btn btn-primary" id="scrapeBtn">&#8595; Analyser Wikipedia</button>
-    <button class="btn btn-success" id="dlStartBtn" disabled>&#9654; Lancer le telechargement</button>
+    <button class="btn btn-success" id="dlBtn" disabled>&#9654; Lancer le telechargement</button>
   </div>
   <div class="sec" style="flex:1;display:flex;flex-direction:column;">
     <h3>Actions</h3>
-    <button class="btn btn-success" id="zipBtn" disabled>📦 Télécharger le ZIP</button>
-    <button class="btn" id="clearBtn" disabled>🗑 Effacer</button>
+    <button class="btn btn-success" id="zipBtn" disabled>&#128230; Telecharger le ZIP</button>
+    <button class="btn" id="clearBtn" disabled>&#128465; Effacer</button>
     <div style="margin-top:10px;font-family:var(--mono);font-size:11px;" id="actSt"></div>
   </div>
 </aside>
@@ -113,19 +118,19 @@
   <div class="toolbar">
     <div class="tabs">
       <div class="tab active" data-f="all">Tous</div>
-      <div class="tab" data-f="ok">Téléchargés</div>
+      <div class="tab" data-f="ok">Telecharges</div>
       <div class="tab" data-f="err">Erreurs</div>
     </div>
-    <input class="srch" type="text" id="srch" placeholder="🔍 Filtrer...">
+    <input class="srch" type="text" id="srch" placeholder="Filtrer...">
   </div>
   <div class="prog" id="prog">
     <div class="prog-track"><div class="prog-fill" id="pFill"></div></div>
     <div class="prog-lbl"><span id="pTxt">En cours...</span><span id="pPct">0%</span></div>
   </div>
   <div class="tw">
-    <div class="empty" id="emptyEl"><div class="eico">🎖</div><div>Colle une URL Wikipedia et clique "Analyser"</div></div>
+    <div class="empty" id="emptyEl"><div class="eico">&#127894;</div><div>Colle une URL Wikipedia et clique Analyser</div></div>
     <table id="tbl" style="display:none">
-      <thead><tr><th>IMG</th><th>Source</th><th>Pays / Branche</th><th>Grade</th><th>Nouveau nom</th><th>État</th></tr></thead>
+      <thead><tr><th>IMG</th><th>Source</th><th>Pays / Branche</th><th>Grade</th><th>Nouveau nom</th><th>Etat</th></tr></thead>
       <tbody id="tbdy"></tbody>
     </table>
   </div>
@@ -135,6 +140,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 var state = {entries: [], filter: "all", search: ""};
+var selectedBranch = "AIR";
 
 function gi(id) { return document.getElementById(id); }
 
@@ -143,6 +149,7 @@ var wikiUrlEl   = gi("wikiUrl");
 var wDot        = gi("wDot");
 var wSt         = gi("wSt");
 var scrapeBtn   = gi("scrapeBtn");
+var dlBtn       = gi("dlBtn");
 var zipBtn      = gi("zipBtn");
 var clearBtn    = gi("clearBtn");
 var tbdy        = gi("tbdy");
@@ -229,6 +236,18 @@ function render() {
   });
 }
 
+// BOUTONS BRANCHE
+var branchBtns = [gi("bAIR"), gi("bTERRE"), gi("bMER")];
+branchBtns.forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    branchBtns.forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    selectedBranch = btn.textContent.trim();
+    log("Branche selectionnee: " + selectedBranch, "info");
+  });
+});
+
+// SCRAPE
 scrapeBtn.addEventListener("click", function() {
   var wikiUrl   = wikiUrlEl.value.trim();
   var workerUrl = workerUrlEl.value.trim();
@@ -237,11 +256,12 @@ scrapeBtn.addEventListener("click", function() {
   wDot.className = "dot loading";
   wSt.textContent = "Analyse...";
   scrapeBtn.disabled = true;
-  log("Analyse du tableau Wikipedia...", "info");
+  dlBtn.disabled = true;
+  log("Analyse Wikipedia - branche: " + selectedBranch, "info");
   fetch(workerUrl + "/scrape-wiki", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({wikiUrl: wikiUrl})
+    body: JSON.stringify({wikiUrl: wikiUrl, branch: selectedBranch})
   })
   .then(function(resp) {
     if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -249,7 +269,7 @@ scrapeBtn.addEventListener("click", function() {
   })
   .then(function(data) {
     if (data.error) throw new Error(data.error);
-    log(data.count + " images trouvees - branche : " + data.branch, "ok");
+    log(data.count + " images trouvees - branche: " + data.branch, "ok");
     wDot.className = "dot ok";
     wSt.textContent = data.count + " images - " + data.branch;
     state.entries = data.entries.map(function(e) {
@@ -260,7 +280,7 @@ scrapeBtn.addEventListener("click", function() {
       };
     });
     render(); stats();
-    gi("dlStartBtn").disabled = false;
+    dlBtn.disabled = false;
   })
   .catch(function(e) {
     wDot.className = "dot error";
@@ -270,6 +290,13 @@ scrapeBtn.addEventListener("click", function() {
   .finally(function() {
     scrapeBtn.disabled = false;
   });
+});
+
+// BOUTON LANCER TELECHARGEMENT
+dlBtn.addEventListener("click", function() {
+  var workerUrl = workerUrlEl.value.trim();
+  dlBtn.disabled = true;
+  downloadAll(workerUrl);
 });
 
 function downloadAll(workerUrl) {
@@ -296,7 +323,6 @@ function downloadAll(workerUrl) {
     i += BATCH;
     return Promise.all(batch.map(function(e) {
       e.status = "loading"; render();
-      console.log("imgUrl:", e.imgUrl);
       var proxyUrl = workerUrl + "/proxy-image?url=" + encodeURIComponent(e.imgUrl);
       return fetch(proxyUrl)
         .then(function(r) {
@@ -385,7 +411,7 @@ zipBtn.addEventListener("click", function() {
   .then(function(content) {
     var a = document.createElement("a");
     a.href = URL.createObjectURL(content);
-    a.download = "OTAN_grades_" + new Date().toISOString().slice(0, 10) + ".zip";
+    a.download = "OTAN_" + selectedBranch + "_" + new Date().toISOString().slice(0, 10) + ".zip";
     a.click();
     URL.revokeObjectURL(a.href);
     actSt.innerHTML = "<span style=\"color:var(--accent2)\">OK - " + ok.length + " fichiers telecharges</span>";
@@ -420,17 +446,12 @@ clearBtn.addEventListener("click", function() {
   wDot.className = "dot";
   wSt.textContent = "Non chargee";
   actSt.innerHTML = "";
-  gi("dlStartBtn").disabled = true;
+  dlBtn.disabled = true;
   render(); stats();
   log("Reinitialise", "warn");
 });
-gi("dlStartBtn").addEventListener("click", function() {
-  var workerUrl = workerUrlEl.value.trim();
-  gi("dlStartBtn").disabled = true;
-  downloadAll(workerUrl);
-});
 
-log("THOT pret. Colle une URL Wikipedia et clique Analyser Wikipedia.", "info");
+log("THOT pret. Selectionne la branche, colle une URL Wikipedia et clique Analyser.", "info");
 </script>
 </body>
 </html>
