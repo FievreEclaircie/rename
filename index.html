@@ -94,8 +94,13 @@
     <label>URL page grades OTAN</label>
     <input type="url" id="wikiUrl" placeholder="https://en.wikipedia.org/wiki/Ranks_and_insignia_of_NATO_air_forces_officers">
     <p class="hint">Compatible avec toutes les pages de grades OTAN Wikipedia</p>
-    <button class="btn btn-primary" id="scrapeBtn"> Analyser Wikipedia</button>
-    <button class="btn btn-success" id="dlStartBtn" disabled> Lancer le telechargement</button>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button class="btn" id="branchAIR" data-b="AIR" style="flex:1;padding:6px;">AIR</button>
+      <button class="btn" id="branchTERRE" data-b="TERRE" style="flex:1;padding:6px;">TERRE</button>
+      <button class="btn" id="branchMER" data-b="MER" style="flex:1;padding:6px;">MER</button>
+    </div>
+    <button class="btn btn-primary" id="scrapeBtn">&#8595; Analyser Wikipedia</button>
+    <button class="btn btn-success" id="dlStartBtn" disabled>&#9654; Lancer le telechargement</button>
   </div>
   <div class="sec" style="flex:1;display:flex;flex-direction:column;">
     <h3>Actions</h3>
