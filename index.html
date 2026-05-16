@@ -236,7 +236,6 @@ function render() {
   });
 }
 
-// BOUTONS BRANCHE
 var branchBtns = [gi("bAIR"), gi("bTERRE"), gi("bMER")];
 branchBtns.forEach(function(btn) {
   btn.addEventListener("click", function() {
@@ -247,7 +246,6 @@ branchBtns.forEach(function(btn) {
   });
 });
 
-// SCRAPE
 scrapeBtn.addEventListener("click", function() {
   var wikiUrl   = wikiUrlEl.value.trim();
   var workerUrl = workerUrlEl.value.trim();
@@ -276,6 +274,7 @@ scrapeBtn.addEventListener("click", function() {
       return {
         country: e.country, branch: e.branch, rank: e.rank,
         gradeName: e.gradeName, fileName: e.fileName, imgUrl: e.imgUrl,
+        ext: e.ext || ".svg",
         status: "pending", blob: null, blobUrl: null, error: null
       };
     });
@@ -292,66 +291,11 @@ scrapeBtn.addEventListener("click", function() {
   });
 });
 
-// BOUTON LANCER TELECHARGEMENT
 dlBtn.addEventListener("click", function() {
   var workerUrl = workerUrlEl.value.trim();
   dlBtn.disabled = true;
   downloadAll(workerUrl);
 });
-
-function svgToPng(buf, imgUrl) {
-  var w = 240;
-  return new Promise(function(res, rej) {
-    var txt  = new TextDecoder().decode(buf);
-    var blob = new Blob([txt], {type: "image/svg+xml;charset=utf-8"});
-    var url  = URL.createObjectURL(blob);
-    var img  = new Image();
-
-    var timer = setTimeout(function() {
-      URL.revokeObjectURL(url);
-      log("SVG timeout: " + (imgUrl || ""), "warn");
-      // Retourner un PNG vide plutot que bloquer
-      var cv = document.createElement("canvas");
-      cv.width = w; cv.height = w;
-      cv.toBlob(function(b){ res(b || new Blob([], {type:"image/png"})); }, "image/png");
-    }, 8000);
-
-    img.onload = function() {
-      clearTimeout(timer);
-      try {
-        var nw = img.naturalWidth  || w;
-        var nh = img.naturalHeight || w;
-        var ratio = (nw && nh) ? nw / nh : 1;
-        if (ratio > 10 || ratio < 0.1) ratio = 1;
-        var cv = document.createElement("canvas");
-        cv.width  = w;
-        cv.height = Math.round(w / ratio);
-        var ctx = cv.getContext("2d");
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(url);
-        cv.toBlob(function(b) {
-          if (b) res(b);
-          else rej(new Error("toBlob failed"));
-        }, "image/png");
-      } catch(drawErr) {
-        URL.revokeObjectURL(url);
-        rej(new Error("Canvas: " + drawErr.message));
-      }
-    };
-
-    img.onerror = function() {
-      clearTimeout(timer);
-      URL.revokeObjectURL(url);
-      log("SVG non rendu: " + (imgUrl || ""), "warn");
-      // Fallback PNG vide
-      var cv = document.createElement("canvas");
-      cv.width = w; cv.height = w;
-      cv.toBlob(function(b){ res(b || new Blob([], {type:"image/png"})); }, "image/png");
-    };
-
-    img.src = url;
-  });
-}
 
 function downloadAll(workerUrl) {
   var total = state.entries.length;
@@ -383,16 +327,21 @@ function downloadAll(workerUrl) {
           if (!r.ok) throw new Error("HTTP " + r.status);
           var ct = r.headers.get("content-type") || "";
           return r.arrayBuffer().then(function(buf) {
-            var isSvg = ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1;
-            if (isSvg) {
-              return svgToPng(buf, e.imgUrl);
-            }
-            return new Blob([buf], {type: "image/png"});
+            var isSvg = ct.indexOf("svg") !== -1 || (e.ext && e.ext === ".svg");
+            var mimeType = isSvg ? "image/svg+xml" : "image/png";
+            return new Blob([buf], {type: mimeType});
           });
         })
         .then(function(blob) {
           e.blob = blob;
-          e.blobUrl = URL.createObjectURL(blob);
+          // Preview : pour les SVG on cree une data URL pour l affichage
+          if (e.ext === ".svg") {
+            var reader = new FileReader();
+            reader.onload = function(ev) { e.blobUrl = ev.target.result; render(); };
+            reader.readAsDataURL(blob);
+          } else {
+            e.blobUrl = URL.createObjectURL(blob);
+          }
           e.status = "ok"; done++;
           log("OK " + e.fileName, "ok");
         })
@@ -408,8 +357,7 @@ function downloadAll(workerUrl) {
           render(); stats();
         });
     })).then(function() {
-      // Petit delai entre les batchs pour eviter le rate-limit Wikimedia
-      return new Promise(function(r){ setTimeout(r, 200); });
+      return new Promise(function(r){ setTimeout(r, 150); });
     }).then(nextBatch);
   }
 
@@ -472,7 +420,7 @@ gi("srch").addEventListener("input", function(e) {
 });
 
 clearBtn.addEventListener("click", function() {
-  state.entries.forEach(function(e){ if (e.blobUrl) URL.revokeObjectURL(e.blobUrl); });
+  state.entries.forEach(function(e){ if (e.blobUrl && e.blobUrl.indexOf("blob:") === 0) URL.revokeObjectURL(e.blobUrl); });
   state.entries = [];
   wDot.className = "dot";
   wSt.textContent = "Non chargee";
