@@ -386,20 +386,35 @@ function svgToPng(buf) {
     var url  = URL.createObjectURL(blob);
     var img  = new Image();
     img.onload = function() {
-      var ratio = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1;
-      var cv = document.createElement("canvas");
-      cv.width  = w;
-      cv.height = Math.round(w / ratio);
-      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url);
-      cv.toBlob(function(b) {
-        if (b) res(b);
-        else   rej(new Error("toBlob failed"));
-      }, "image/png");
+      try {
+        var ratio = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1;
+        if (!ratio || ratio > 10 || ratio < 0.1) ratio = 1;
+        var cv = document.createElement("canvas");
+        cv.width  = w;
+        cv.height = Math.round(w / ratio);
+        var ctx = cv.getContext("2d");
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        cv.toBlob(function(b) {
+          if (b) res(b);
+          else rej(new Error("toBlob failed"));
+        }, "image/png");
+      } catch(drawErr) {
+        URL.revokeObjectURL(url);
+        rej(new Error("Canvas draw error: " + drawErr.message));
+      }
     };
     img.onerror = function() {
       URL.revokeObjectURL(url);
-      rej(new Error("SVG load failed"));
+      // Fallback : retourner un blob vide plutot que rejeter
+      log("SVG non rendu, blob vide pour: " + imgUrl, "warn");
+      var cv = document.createElement("canvas");
+      cv.width = 240; cv.height = 240;
+      cv.toBlob(function(b){ res(b || new Blob()); }, "image/png");
+    };
+    img.onabort = function() {
+      URL.revokeObjectURL(url);
+      rej(new Error("SVG aborted"));
     };
     img.src = url;
   });
