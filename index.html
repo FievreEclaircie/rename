@@ -299,26 +299,60 @@ dlBtn.addEventListener("click", function() {
   downloadAll(workerUrl);
 });
 
-  function loadImgViaBrowser(imgUrl) {
+function svgToPng(buf, imgUrl) {
+  var w = 240;
   return new Promise(function(res, rej) {
-    var img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = function() {
+    var txt  = new TextDecoder().decode(buf);
+    var blob = new Blob([txt], {type: "image/svg+xml;charset=utf-8"});
+    var url  = URL.createObjectURL(blob);
+    var img  = new Image();
+
+    var timer = setTimeout(function() {
+      URL.revokeObjectURL(url);
+      log("SVG timeout: " + (imgUrl || ""), "warn");
+      // Retourner un PNG vide plutot que bloquer
       var cv = document.createElement("canvas");
-      cv.width  = img.naturalWidth  || 300;
-      cv.height = img.naturalHeight || 300;
-      cv.getContext("2d").drawImage(img, 0, 0);
-      cv.toBlob(function(b) {
-        if (b) res(b);
-        else rej(new Error("toBlob failed"));
-      }, "image/png");
+      cv.width = w; cv.height = w;
+      cv.toBlob(function(b){ res(b || new Blob([], {type:"image/png"})); }, "image/png");
+    }, 8000);
+
+    img.onload = function() {
+      clearTimeout(timer);
+      try {
+        var nw = img.naturalWidth  || w;
+        var nh = img.naturalHeight || w;
+        var ratio = (nw && nh) ? nw / nh : 1;
+        if (ratio > 10 || ratio < 0.1) ratio = 1;
+        var cv = document.createElement("canvas");
+        cv.width  = w;
+        cv.height = Math.round(w / ratio);
+        var ctx = cv.getContext("2d");
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        cv.toBlob(function(b) {
+          if (b) res(b);
+          else rej(new Error("toBlob failed"));
+        }, "image/png");
+      } catch(drawErr) {
+        URL.revokeObjectURL(url);
+        rej(new Error("Canvas: " + drawErr.message));
+      }
     };
+
     img.onerror = function() {
-      rej(new Error("Image load failed"));
+      clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      log("SVG non rendu: " + (imgUrl || ""), "warn");
+      // Fallback PNG vide
+      var cv = document.createElement("canvas");
+      cv.width = w; cv.height = w;
+      cv.toBlob(function(b){ res(b || new Blob([], {type:"image/png"})); }, "image/png");
     };
-    img.src = imgUrl;
+
+    img.src = url;
   });
 }
+
 function downloadAll(workerUrl) {
   var total = state.entries.length;
   var done = 0, errs = 0;
@@ -326,7 +360,7 @@ function downloadAll(workerUrl) {
   pFill.style.width = "0%";
   pPct.textContent = "0%";
   log("Telechargement de " + total + " images...", "info");
-  var BATCH = 2;
+  var BATCH = 3;
   var i = 0;
 
   function nextBatch() {
@@ -349,8 +383,9 @@ function downloadAll(workerUrl) {
           if (!r.ok) throw new Error("HTTP " + r.status);
           var ct = r.headers.get("content-type") || "";
           return r.arrayBuffer().then(function(buf) {
-            if (ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1) {
-              return svgToPng(buf);
+            var isSvg = ct.indexOf("svg") !== -1 || e.imgUrl.toLowerCase().indexOf(".svg") !== -1;
+            if (isSvg) {
+              return svgToPng(buf, e.imgUrl);
             }
             return new Blob([buf], {type: "image/png"});
           });
@@ -372,52 +407,13 @@ function downloadAll(workerUrl) {
           pTxt.textContent  = (done + errs) + " / " + total;
           render(); stats();
         });
-    })).then(nextBatch);
+    })).then(function() {
+      // Petit delai entre les batchs pour eviter le rate-limit Wikimedia
+      return new Promise(function(r){ setTimeout(r, 200); });
+    }).then(nextBatch);
   }
 
   return nextBatch();
-}
-
-function svgToPng(buf) {
-  var w = 300;
-  return new Promise(function(res, rej) {
-    var txt  = new TextDecoder().decode(buf);
-    var blob = new Blob([txt], {type: "image/svg+xml;charset=utf-8"});
-    var url  = URL.createObjectURL(blob);
-    var img  = new Image();
-    img.onload = function() {
-      try {
-        var ratio = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1;
-        if (!ratio || ratio > 10 || ratio < 0.1) ratio = 1;
-        var cv = document.createElement("canvas");
-        cv.width  = w;
-        cv.height = Math.round(w / ratio);
-        var ctx = cv.getContext("2d");
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(url);
-        cv.toBlob(function(b) {
-          if (b) res(b);
-          else rej(new Error("toBlob failed"));
-        }, "image/png");
-      } catch(drawErr) {
-        URL.revokeObjectURL(url);
-        rej(new Error("Canvas draw error: " + drawErr.message));
-      }
-    };
-    img.onerror = function() {
-      URL.revokeObjectURL(url);
-      // Fallback : retourner un blob vide plutot que rejeter
-      log("SVG non rendu, blob vide pour: " + imgUrl, "warn");
-      var cv = document.createElement("canvas");
-      cv.width = 240; cv.height = 240;
-      cv.toBlob(function(b){ res(b || new Blob()); }, "image/png");
-    };
-    img.onabort = function() {
-      URL.revokeObjectURL(url);
-      rej(new Error("SVG aborted"));
-    };
-    img.src = url;
-  });
 }
 
 zipBtn.addEventListener("click", function() {
@@ -449,7 +445,7 @@ zipBtn.addEventListener("click", function() {
     a.download = "OTAN_" + selectedBranch + "_" + new Date().toISOString().slice(0, 10) + ".zip";
     a.click();
     URL.revokeObjectURL(a.href);
-    actSt.innerHTML = "<span style=\"color:var(--accent2)\">OK - " + ok.length + " fichiers telecharges</span>";
+    actSt.innerHTML = "<span style=\"color:var(--accent2)\">OK - " + ok.length + " fichiers</span>";
     log("ZIP genere: " + ok.length + " fichiers", "ok");
   })
   .catch(function(e) {
